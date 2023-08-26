@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref, onBeforeMount, watch, toRaw } from 'vue'
+import { onMounted, ref, onBeforeUnmount, watch, toRaw } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useMessage } from 'naive-ui'
 import makeBlockie from 'ethereum-blockies-base64';
@@ -98,6 +98,11 @@ const formatAddress = (address) => {
 
 onMounted(() => {
   setBoard()
+})
+
+onBeforeUnmount(() => {
+  toRaw(store.state.contract).removeAllListeners('MoveMade')
+  toRaw(store.state.contract).removeAllListeners('GameEnded')
 })
 
 const setBoard = () => {

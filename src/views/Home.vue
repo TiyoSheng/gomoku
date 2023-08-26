@@ -92,7 +92,7 @@ watch(() => store.state.contract, (contract) => {
       getRoomList()
     })
     toRaw(contract).on('GameEnded', (roomId, winner) => {
-      console.log(roomId, winner, loser)
+      console.log(roomId, winner)
       getRoomList()
     })
   }
