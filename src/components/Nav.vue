@@ -37,6 +37,7 @@ const createAaWallet = async () => {
   createLoading.value = true
   aaAddress.value = await create_aa_wallet()
   createLoading.value = false
+  setAaAddress(aaAddress.value)
 }
 
 onBeforeMount(async () => {
@@ -48,6 +49,15 @@ onBeforeMount(async () => {
   // 获取钱包余额
   let bal = await web3.getBalance(accounts[0]);
   balance.value = bal.toString()
+  if (balance.value == 0) {
+    let interval = setInterval(async () => {
+      let bal = await web3.getBalance(accounts[0]);
+      if (bal.toString() > 0) {
+        clearInterval(interval)
+        balance.value = bal.toString()
+      }
+    }, 10000)
+  }
   aaAddress.value = localStorage.getItem('aa_address') || ''
   let signer = web3.getSigner();
   let contract = new ethers.Contract(contractAddress, contractAbi, signer);

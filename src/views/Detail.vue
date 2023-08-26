@@ -2,11 +2,10 @@
 import { onMounted, ref, onBeforeUnmount, watch, toRaw } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useMessage } from 'naive-ui'
-import makeBlockie from 'ethereum-blockies-base64';
 import { useGlobalStore } from '../hooks/globalStore'
 import { execute } from '../libs/inject'
 import firework from '../libs/firework';
-import { set } from 'date-fns';
+import { ethers } from "ethers";
 
 const { store } = useGlobalStore()
 const message = useMessage()
@@ -35,6 +34,7 @@ let result = []
 let room = {}
 let blackPlayer = ''
 let whitePlayer = ''
+let interval1 = null
 
 const getCanvas = () => {
   firework.onLoad();
@@ -66,7 +66,6 @@ const getRoom = async () => {
   let contract = toRaw(store.state.contract)
   const res = await contract.rooms(roomId)
   room = res
-  console.log(room)
   blackPlayer = room.blackPlayer
   whitePlayer = room.whitePlayer
   if (blackPlayer == store.state.aaAddress) {
@@ -84,6 +83,26 @@ const getRoom = async () => {
   }
   blackPlayerInfo.value = await contract.players(blackPlayer)
   whitePlayerInfo.value = await contract.players(whitePlayer)
+  checkBlock(room)
+}
+
+const checkBlock = async (room) => {
+  interval1 && clearInterval(interval1)
+  let contract = toRaw(store.state.contract)
+  if (!room) {
+    room = await contract.rooms(roomId)
+  }
+    // get getBlockNumber
+  let web3 = new ethers.providers.Web3Provider(window.ethereum);
+  interval1 = setInterval(async () => {
+    let blockNumber = await web3.getBlockNumber()
+    if (blockNumber - Number(room.lastMoveBlock) > 50) {
+      interval1 && clearInterval(interval1)
+      let tx = await execute(contract, 'checkOverTime', [roomId])
+      console.log(tx)
+      isOver.value = true
+    }
+  }, 10000)
 }
 
 const toScan = (hash) => {
@@ -168,8 +187,13 @@ const fall = async () => {
   let contract = toRaw(store.state.contract)
   try {
     let tx = await execute(contract, 'makeMove', [roomId, cell.column, cell.row])
-    console.log(tx)
-    txList.value.push({ player: cell.player, tx: tx, x: cell.column, y: cell.row })
+    console.log(tx, tx.gasPrice.toString())
+    let gasPrice = tx.gasPrice.toString()
+    let gasLimit = tx.gasLimit.toString()
+    let gas = Number(gasPrice) * Number(gasLimit)
+    //to wei
+    gas = ethers.utils.formatEther(gas.toString())
+    txList.value.push({ player: cell.player, tx: tx, x: cell.column, y: cell.row, gas })
     turn.value++;
     map.value[cell.column][cell.row] = cell.player;
     let a = isPlayerWon();
@@ -325,9 +349,9 @@ watch(() => store.state.contract, async (contract) => {
   if (contract) {
     getBoard()
     await getRoom()
-    toRaw(contract).on('MoveMade', async (roomId, player, column, row) => {
-      console.log(roomId, player, column, row)
-      if (player != playerType.value) {
+    toRaw(contract).on('MoveMade', async (id, player, column, row) => {
+      interval1 && clearInterval(interval1)
+      if (player != playerType.value && id.toString() == roomId) {
         txList.value.push({ player: player, x: column, y: row })
         await getBoard()
         cell = {
@@ -344,8 +368,13 @@ watch(() => store.state.contract, async (contract) => {
           } else if (player == 2) {
             winner.value = 2
           }
+        } else {
+
         }
         cell = {};
+      }
+      if (player == playerType.value && id.toString() == roomId) {
+        checkBlock()
       }
     })
     toRaw(contract).on('GameEnded', (id, win) => {
@@ -430,9 +459,12 @@ watch(() => isOver.value, (isOver) => {
       </div>
       <div class="r-bd border">
         <div class="tx" v-for="(item, index) in txList">{{ item.player == 1 ? 'BLACK' : 'WHITE' }} ({{ item.x }}, {{ item.y
-        }}) <span v-if="item.tx?.hash" @click="toScan(item.tx?.hash)">tx: {{ formatAddress(item.tx?.hash) }}</span></div>
+        }}) 
+          <span v-if="item.tx?.hash" @click="toScan(item.tx?.hash)">tx: {{ formatAddress(item.tx?.hash) }}</span>
+          <p v-if="item.gas" style="margin-top: 4px;">gas: {{ item.gas }} BNB</p>
+        </div>
       </div>
-      <n-button type="primary" @click="fall" style="width: 100%;">Confirm Place</n-button>
+      <n-button type="primary" :disabled="(playerType == 1 && turn % 2 != 0) || (playerType.value == 2 && turn.value % 2 == 0)" @click="fall" style="width: 100%;">Confirm Place</n-button>
     </div>
   </div>
 </template>

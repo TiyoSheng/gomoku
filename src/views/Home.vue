@@ -12,10 +12,16 @@ const roomList = ref([])
 const loading = ref(false)
 const createLoading = ref(false)
 const positionValue = ref(1)
+const isWaiting = ref(false)
+const createRoomId = ref(-1)
 const options = [
   { label: 'black', value: 1 },
   { label: 'white', value: 2 },
 ]
+
+const toRoom = (id) => {
+  router.push(`/room/${id}`)
+}
 
 const joinRoom = async (id) => {
   id = Number(id)
@@ -40,7 +46,7 @@ const createRoom = async () => {
   let contract = toRaw(store.state.contract)
   try {
     const tx = await execute(contract, 'createRoom', [positionValue.value])
-    console.log(tx)
+    isWaiting.value = true
     message.success('Create Room Success')
   } catch (error) {
     console.log(error)
@@ -54,7 +60,7 @@ const getRoomList = async () => {
   let contract = toRaw(store.state.contract)
   console.log(contract)
   const res = await contract.getWaitingRoom()
-  roomList.value = res
+  roomList.value = res.filter(e => e.gameState != 2)
   loading.value = false
   console.log(res)
 }
@@ -82,6 +88,10 @@ watch(() => store.state.contract, (contract) => {
     getRoomList()
     toRaw(contract).on('RoomCreated', (id, player, position) => {
       console.log(id, player, position)
+      if (player.toLocaleLowerCase() == store.state.aaAddress.toLocaleLowerCase()) {
+        createRoomId.value = id
+        isWaiting.value = true
+      }
       getRoomList()
     })
     toRaw(contract).on('GameStarted', (id, player1, player2) => {
@@ -128,6 +138,8 @@ onBeforeUnmount(() => {
                 '' }}</td>
               <td>
                 <n-button type="primary" size="small" v-if="isShowJoin(room)" @click="joinRoom(room.roomId)">Join</n-button>
+                <n-button type="primary" size="small" v-if="room.gameState == 1 && (room.blackPlayer == store.state.aaAddress || room.whitePlayer == store.state.aaAddress)"
+                  @click="toRoom(room.roomId)">Action</n-button>
               </td>
             </tr>
           </tbody>
@@ -135,7 +147,7 @@ onBeforeUnmount(() => {
       </div>
     </n-spin>
     <n-spin size="large" :show="createLoading">
-      <div class="r">
+      <div v-if="!isWaiting" class="r">
         <div class="title">Create Room</div>
         <div class="img"></div>
         <div class="select">
@@ -144,6 +156,13 @@ onBeforeUnmount(() => {
             :options="options" />
         </div>
         <n-button type="primary" style="width: 100%; margin-top: 24px;" @click="createRoom">Create</n-button>
+      </div>
+      <div v-else class="r">
+        <div class="title">Waiting</div>
+        <div class="img"></div>
+        <div class="select">
+          <p>Your roomId is {{ createRoomId }}</p>
+        </div>
       </div>
     </n-spin>
   </div>

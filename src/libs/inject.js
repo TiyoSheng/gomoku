@@ -114,7 +114,7 @@ export async function execute(contract, method_name, params){
     console.log("执行合约",target_contract_address,method_name)
     let tx = await aa_contract.connect(signer).execute(target_contract_address, 0, data);
     let w = await tx.wait();
-    return tx
+    return Object.assign(w, tx);
 }
 
 
