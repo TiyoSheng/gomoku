@@ -86,7 +86,7 @@ watch(() => store.state.contract, (contract) => {
     })
     toRaw(contract).on('GameStarted', (id, player1, player2) => {
       console.log(id, player1, player2)
-      if (player1 == store.state.aaAddress || player2 == store.state.aaAddress) {
+      if (player1.toLocaleLowerCase() == store.state.aaAddress.toLocaleLowerCase() || player2.toLocaleLowerCase() == store.state.aaAddress.toLocaleLowerCase()) {
         router.push(`/room/${id}`)
       }
       getRoomList()

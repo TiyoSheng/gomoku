@@ -1,15 +1,17 @@
 <script setup>
 import { onMounted, ref, onBeforeMount, watch, toRaw } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useMessage } from 'naive-ui'
 import makeBlockie from 'ethereum-blockies-base64';
 import { useGlobalStore } from '../hooks/globalStore'
 import { execute } from '../libs/inject'
-import is from 'date-fns/locale/is/index.js';
+import firework from '../libs/firework';
+import { set } from 'date-fns';
 
 const { store } = useGlobalStore()
 const message = useMessage()
 const route = useRoute()
+const router = useRouter()
 const pan = ref(null)
 const items = ref(null)
 const isOver = ref(false)
@@ -21,6 +23,7 @@ const blackPlayerInfo = ref({})
 const whitePlayerInfo = ref({})
 const txList = ref([])
 const winner = ref(0)
+const turn = ref(0)
 // router 获取参数
 const roomId = route.params.id
 const m = 15;
@@ -28,11 +31,14 @@ const cellWidth = 35
 const boardWidth = m * cellWidth
 const k = 5
 let cell = {}
-let turn = 0
 let result = []
 let room = {}
 let blackPlayer = ''
 let whitePlayer = ''
+
+const getCanvas = () => {
+  firework.onLoad();
+}
 
 const getBoard = async () => {
   loading.value = true
@@ -48,7 +54,7 @@ const getBoard = async () => {
         }
       })
     })
-    turn = count
+    turn.value = count
   } catch (error) {
     console.log(error)
     message.error(error)
@@ -78,6 +84,10 @@ const getRoom = async () => {
   }
   blackPlayerInfo.value = await contract.players(blackPlayer)
   whitePlayerInfo.value = await contract.players(whitePlayer)
+}
+
+const toScan = (hash) => {
+  window.open(`https://opbnbscan.com/tx/${hash}`)
 }
 
 const formatAddress = (address) => {
@@ -120,18 +130,18 @@ const isItemClicked = (column, row) => {
     return
   };
   // 如果不是当前玩家，不允许点击
-  if (playerType.value == 1 && turn % 2 != 0) {
+  if (playerType.value == 1 && turn.value % 2 != 0) {
     // 英文
     message.error('It is not your turn')
     return
-  } else if (playerType.value == 2 && turn % 2 == 0) {
+  } else if (playerType.value == 2 && turn.value % 2 == 0) {
     message.error('It is not your turn')
     return
   }
   tempMap.value = new Array(m).fill(0).map(() => new Array(m).fill(0))
   if (map.value[column][row] === 0) {
-    console.log(turn)
-    let player = turn % 2 === 0 ? 1 : 2;
+    console.log(turn.value)
+    let player = turn.value % 2 === 0 ? 1 : 2;
     tempMap.value[column][row] = player;
 
     cell = {
@@ -155,7 +165,7 @@ const fall = async () => {
     let tx = await execute(contract, 'makeMove', [roomId, cell.column, cell.row])
     console.log(tx)
     txList.value.push({ player: cell.player, tx: tx, x: cell.column, y: cell.row })
-    turn++;
+    turn.value++;
     map.value[cell.column][cell.row] = cell.player;
     let a = isPlayerWon();
     if (a === true) {
@@ -303,7 +313,7 @@ const isPlayerWon = () => {
   } else {
     result = []
   }
-  return turn === m * m && won === false ? "draw" : won;
+  return turn.value === m * m && won === false ? "draw" : won;
 };
 
 watch(() => store.state.contract, async (contract) => {
@@ -347,6 +357,14 @@ watch(() => store.state.contract, async (contract) => {
   }
 }, { immediate: true })
 
+watch(() => isOver.value, (isOver) => {
+  if (isOver && winner.value == playerType.value) {
+    setTimeout(() => {
+      getCanvas()
+    }, 100)
+  }
+})
+
 </script>
 
 <template>
@@ -355,6 +373,7 @@ watch(() => store.state.contract, async (contract) => {
       <div class="l">
         <div class="w">
           <canvas class="pan" ref="pan"></canvas>
+          <canvas v-if="isOver && winner == playerType" id="canvas" class="firework"></canvas>
           <div ref="items" class="items">
             <div class="row flex-center" v-for="(row, rowIndex) in map" :style="{ height: cellWidth + 'px' }">
               <div v-for="(column, columnIndex) in row"
@@ -364,9 +383,12 @@ watch(() => store.state.contract, async (contract) => {
             </div>
           </div>
           <div v-if="isOver" class="msg">
-            <div v-if="winner == 1">Black win</div>
-            <div v-if="winner == 2">White win</div>
-            <div v-if="winner == 0 && isOver">Draw</div>
+            <div>
+              <div v-if="winner == 1">Black win</div>
+              <div v-if="winner == 2">White win</div>
+              <div v-if="winner == 0 && isOver">Draw</div>
+              <n-button type="primary" @click="() => router.push('/')" style="margin-top: 12px;">Back to roomList</n-button>
+            </div>
           </div>
         </div>
       </div>
@@ -376,16 +398,15 @@ watch(() => store.state.contract, async (contract) => {
         <div class="players flex-center-sb">
           <div class="w">
             <div class="flex-center">
-              <div class="avatar">
+              <div class="avatar" :style="{border: (!isOver && turn % 2 == 0) ? '2px solid #FF0620' : '1px solid #ccc'}">
                 <img v-if="winner == 1" src="./icon.svg" alt="" class="icon">
-                <img v-if="blackPlayer" :src="makeBlockie(blackPlayer)" />
               </div>
               <div class="info">
                 <div>win: {{ blackPlayerInfo.wins }}</div>
                 <div>loss: {{ blackPlayerInfo.losses }}</div>
               </div>
             </div>
-            <div class="addr">black: {{ formatAddress(blackPlayer) }}</div>
+            <div class="addr">{{ formatAddress(blackPlayer) }}</div>
           </div>
           <div class="vs">VS</div>
           <div class="b">
@@ -394,20 +415,19 @@ watch(() => store.state.contract, async (contract) => {
                 <div>win: {{ whitePlayerInfo.wins }}</div>
                 <div>loss: {{ whitePlayerInfo.losses }}</div>
               </div>
-              <div class="avatar">
+              <div class="avatar" :style="{border: (!isOver && turn % 2 != 0) ? '2px solid #FF0620' : '1px solid #ccc'}">
                 <img v-if="winner == 2" src="./icon.svg" alt="" class="icon">
-                <img v-if="whitePlayer" :src="makeBlockie(whitePlayer)" />
               </div>
             </div>
-            <div class="addr">white: {{ formatAddress(whitePlayer) }}</div>
+            <div class="addr">{{ formatAddress(whitePlayer) }}</div>
           </div>
         </div>
       </div>
       <div class="r-bd border">
         <div class="tx" v-for="(item, index) in txList">{{ item.player == 1 ? 'BLACK' : 'WHITE' }} ({{ item.x }}, {{ item.y
-        }}) <span v-if="item.tx?.hash" @click="copy(item.tx?.hash)">tx: {{ formatAddress(item.tx?.hash) }}</span></div>
+        }}) <span v-if="item.tx?.hash" @click="toScan(item.tx?.hash)">tx: {{ formatAddress(item.tx?.hash) }}</span></div>
       </div>
-      <n-button type="primary" @click="fall" style="width: 100%;">End Fall</n-button>
+      <n-button type="primary" @click="fall" style="width: 100%;">Confirm Place</n-button>
     </div>
   </div>
 </template>
@@ -436,7 +456,7 @@ watch(() => store.state.contract, async (contract) => {
       left: 0;
       right: 0;
       z-index: 999;
-      background: rgba(0, 0, 0, .6);
+      background: rgba(0, 0, 0, .2);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -450,6 +470,16 @@ watch(() => store.state.contract, async (contract) => {
       z-index: 2;
       background: linear-gradient(225deg, #d99058 0%, #f8de7e 74%);
       border-radius: 2px 2px 6px 6px;
+    }
+
+    .firework {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 9;
+      opacity: .8;
     }
 
     .items {
@@ -509,12 +539,9 @@ watch(() => store.state.contract, async (contract) => {
         position: relative;
         width: 48px;
         height: 48px;
-
-        img {
-          width: 48px;
-          height: 48px;
-          border-radius: 24px;
-        }
+        border-radius: 24px;
+        border: 1px solid #ccc;
+        box-sizing: border-box;
 
         .icon {
           position: absolute;
@@ -548,6 +575,9 @@ watch(() => store.state.contract, async (contract) => {
         .addr {
           text-align: left;
         }
+        .avatar {
+          background: #000;
+        }
       }
 
       .b {
@@ -557,6 +587,9 @@ watch(() => store.state.contract, async (contract) => {
 
         .addr {
           text-align: right;
+        }
+        .avatar {
+          background: #fff;
         }
       }
     }
@@ -574,6 +607,8 @@ watch(() => store.state.contract, async (contract) => {
 
         span {
           margin-left: 4px;
+          color: #1684fc;
+          cursor: pointer;
         }
       }
     }
