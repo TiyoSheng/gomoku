@@ -98,9 +98,15 @@ const checkBlock = async (room) => {
     let blockNumber = await web3.getBlockNumber()
     if (blockNumber - Number(room.lastMoveBlock) > 50) {
       interval1 && clearInterval(interval1)
-      let tx = await execute(contract, 'checkOverTime', [roomId])
-      console.log(tx)
-      isOver.value = true
+      loading.value = true
+      try {
+        let tx = await execute(contract, 'checkOverTime', [roomId])
+        console.log(tx)
+        isOver.value = true
+      } catch (error) {
+        console.log(error)
+      }
+      loading.value = false
     }
   }, 10000)
 }
