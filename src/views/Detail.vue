@@ -471,7 +471,7 @@ watch(() => isOver.value, (isOver) => {
           <p v-if="item.gas" style="margin-top: 4px;">gas: {{ item.gas }} BNB</p>
         </div>
       </div>
-      <n-button type="primary" :disabled="(playerType == 1 && turn % 2 != 0) || (playerType.value == 2 && turn.value % 2 == 0)" @click="fall" style="width: 100%;">Confirm Place</n-button>
+      <n-button type="primary" :disabled="(playerType == 1 && turn % 2 != 0) || (playerType == 2 && turn % 2 == 0)" @click="fall" style="width: 100%;">Confirm Place</n-button>
     </div>
   </div>
 </template>
