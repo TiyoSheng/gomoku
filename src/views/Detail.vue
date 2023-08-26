@@ -5,6 +5,7 @@ import { useMessage } from 'naive-ui'
 import makeBlockie from 'ethereum-blockies-base64';
 import { useGlobalStore } from '../hooks/globalStore'
 import { execute } from '../libs/inject'
+import is from 'date-fns/locale/is/index.js';
 
 const { store } = useGlobalStore()
 const message = useMessage()
@@ -55,13 +56,11 @@ const getBoard = async () => {
   loading.value = false
 }
 
-const getRoomList = async () => {
+const getRoom = async () => {
   let contract = toRaw(store.state.contract)
-  const res = await contract.getWaitingRoom()
-  let roomList = res
-  // 通过 roomId 获取房间信息
-  console.log(roomId, roomList)
-  room = roomList.find(item => item.roomId.toString() == roomId)
+  const res = await contract.rooms(roomId)
+  room = res
+  console.log(room)
   blackPlayer = room.blackPlayer
   whitePlayer = room.whitePlayer
   if (blackPlayer == store.state.aaAddress) {
@@ -310,21 +309,37 @@ const isPlayerWon = () => {
 watch(() => store.state.contract, async (contract) => {
   if (contract) {
     getBoard()
-    await getRoomList()
-    toRaw(contract).on('MoveMade', (roomId, player, column, row) => {
+    await getRoom()
+    toRaw(contract).on('MoveMade', async (roomId, player, column, row) => {
       console.log(roomId, player, column, row)
       if (player != playerType.value) {
         txList.value.push({ player: player, x: column, y: row })
-        getBoard()
+        await getBoard()
+        cell = {
+          column: column,
+          row: row,
+          player: player,
+        };
+        let aa = isPlayerWon();
+        console.log(aa)
+        if (aa) {
+          isOver.value = true;
+          if (player == 1) {
+            winner.value = 1
+          } else if (player == 2) {
+            winner.value = 2
+          }
+        }
+        cell = {};
       }
     })
-    toRaw(contract).on('GameEnded', (id, winner) => {
-      console.log(id, winner)
+    toRaw(contract).on('GameEnded', (id, win) => {
+      console.log(id, win)
       if (id.toString() == roomId) {
         isOver.value = true
-        if (winner.toLocaleLowerCase() == blackPlayer.toLocaleLowerCase()) {
+        if (win.toLocaleLowerCase() == blackPlayer.toLocaleLowerCase()) {
           winner.value = 1
-        } else if (winner.toLocaleLowerCase() == whitePlayer.toLocaleLowerCase()) {
+        } else if (win.toLocaleLowerCase() == whitePlayer.toLocaleLowerCase()) {
           winner.value = 2
         }
       }
