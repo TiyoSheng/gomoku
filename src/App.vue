@@ -6,6 +6,12 @@ const themeOverrides = {
     primaryColorHover: '#2152EC'
   }
 }
+
+let isV2 = localStorage.getItem('isV2') || ''
+if (!isV2) {
+  localStorage.clear()
+  localStorage.setItem('isV2', 'true')
+}
 </script>
 <template>
   <n-config-provider :theme-overrides="themeOverrides">
