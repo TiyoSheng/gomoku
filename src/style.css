@@ -1,3 +1,6 @@
+* {
+  font-family: Arial, Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
 .flex-center-center {
   display: flex;
   align-items: center;

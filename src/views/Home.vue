@@ -36,7 +36,7 @@ const joinRoom = async (id) => {
     // router.push(`/room/${id}`)
   } catch (error) {
     console.log(error)
-    message.error(error)
+    message.error(error.reason || error.data?.message || error.message || error)
   }
   loading.value = false
 }
@@ -50,7 +50,8 @@ const createRoom = async () => {
     message.success('Create Room Success')
   } catch (error) {
     console.log(error)
-    message.error(error)
+    message.error(error.reason || error.data?.message || error.message || error)
+
   }
   createLoading.value = false
 }
@@ -139,7 +140,7 @@ onBeforeUnmount(() => {
               <td>
                 <n-button type="primary" size="small" v-if="isShowJoin(room)" @click="joinRoom(room.roomId)">Join</n-button>
                 <n-button type="primary" size="small" v-if="room.gameState == 1 && (room.blackPlayer == store.state.aaAddress || room.whitePlayer == store.state.aaAddress)"
-                  @click="toRoom(room.roomId)">Action</n-button>
+                  @click="toRoom(room.roomId)">Join</n-button>
               </td>
             </tr>
           </tbody>

@@ -57,7 +57,7 @@ const getBoard = async () => {
     turn.value = count
   } catch (error) {
     console.log(error)
-    message.error(error)
+    message.error(error.reason || error.data?.message || error.message || error)
   }
   loading.value = false
 }
@@ -105,6 +105,7 @@ const checkBlock = async (room) => {
         isOver.value = true
       } catch (error) {
         console.log(error)
+        // message.error(error.reason || error.data?.message || error.message)
       }
       loading.value = false
     }
@@ -229,7 +230,7 @@ const fall = async () => {
     cell = {};
   } catch (error) {
     console.log(error)
-    message.error(error)
+    message.error(error.reason || error.data?.message || error.message || error)
   }
   loading.value = false
 }

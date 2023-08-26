@@ -80,7 +80,7 @@ onBeforeMount(async () => {
 
 <template>
   <div class="nav flex-center-sb">
-    <div class="logo">logo</div>
+    <div class="logo">Gomoku</div>
     <div class="wallet flex-center">
       <div v-if="address && balance && balance == 0">gas余额不足请充值: <span @click="copy(address)">{{ address }}</span></div>
       <div v-if="balance > 0 && !aaAddress">
@@ -103,8 +103,8 @@ onBeforeMount(async () => {
   box-sizing: border-box;
   border-bottom: 1px solid #E5E5E5;
   .logo {
-    font-size: 32px;
-    font-weight: 500;
+    font-size: 28px;
+    font-weight: bold;
   }
   .wallet {
     font-size: 14px;
