@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "alchemy-sdk": "^2.10.0",
+    "ethereum-blockies-base64": "^1.0.2",
     "ethers": "5.7.2",
     "naive-ui": "^2.34.4",
     "sass": "^1.66.1",

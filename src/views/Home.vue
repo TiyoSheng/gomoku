@@ -1,12 +1,11 @@
 <script setup>
-import { ref, onBeforeMount, onBeforeUnmount} from 'vue'
+import { ref, onBeforeUnmount, watch, toRaw} from 'vue'
 import { useRouter } from 'vue-router'
-import { contract, wallet, contractAbi } from '../config/config'
 import { useMessage } from 'naive-ui'
-import { Alchemy, AlchemySubscription } from "alchemy-sdk"
-import { ethers } from "ethers";
+import { execute } from '../libs/inject'
+import { useGlobalStore } from '../hooks/globalStore'
 
-
+const { store } = useGlobalStore()
 const message = useMessage()
 const router = useRouter()
 const roomList = ref([])
@@ -18,28 +17,17 @@ const options = [
   { label: 'white', value: 2 },
 ]
 
-const getAlchemy = () => {
-  let settings = {
-    apiKey: 'xQr0n2BqF1Hkkuw5_0YiEXeyQdSYoW1u',
-    network: 'eth-goerli'
-  }
-  let alchemy = new Alchemy(settings)
-  return alchemy
-}
-
-const alchemy = getAlchemy()
-
-
 const joinRoom = async (id) => {
   id = Number(id)
   console.log(id)
   loading.value = true
+  let contract = toRaw(store.state.contract)
   try {
-    const tx = await contract.joinRoom(id)
-    await tx.wait()
+    const tx = await execute(contract, 'joinRoom', [id])
+    console.log(tx)
     message.success('Join Room Success')
-    getRoomList()
-    router.push(`/room/${id}`)
+    // getRoomList()
+    // router.push(`/room/${id}`)
   } catch (error) {
     console.log(error)
     message.error(error)
@@ -49,11 +37,13 @@ const joinRoom = async (id) => {
 
 const createRoom = async () => {
   createLoading.value = true
+  let contract = toRaw(store.state.contract)
   try {
-    const tx = await contract.createRoom(positionValue.value)
-    await tx.wait()
+    const tx = await execute(contract, 'createRoom', [positionValue.value])
+    console.log(tx)
     message.success('Create Room Success')
   } catch (error) {
+    console.log(error)
     message.error(error)
   }
   createLoading.value = false
@@ -61,6 +51,8 @@ const createRoom = async () => {
 
 const getRoomList = async () => {
   loading.value = true
+  let contract = toRaw(store.state.contract)
+  console.log(contract)
   const res = await contract.getWaitingRoom()
   roomList.value = res
   loading.value = false
@@ -80,47 +72,36 @@ const getPlayers = (room) => {
 
 const isShowJoin = (room) => {
   // gameState == 0 并且 blackPlayer，whitePlayer不等于当前钱包地址
-  if (room.gameState == 0 && room.blackPlayer != wallet.address && room.whitePlayer != wallet.address) {
+  if (room.gameState == 0 && room.blackPlayer != store.state.aaAddress && room.whitePlayer != store.state.aaAddress) {
     return true
   }
 }
 
-onBeforeMount(() => {
-  getRoomList()
-  alchemy.core.getTokenBalances(wallet?.address).then(async () => {
-    message.success("开始监听")
-  })
-  alchemy.ws.on({
-    method: AlchemySubscription.MINED_TRANSACTIONS,
-    addresses: [
-      {
-        to: "0x4f91f5Bce22879562FA10D83C0d5938bf0F5182a",
-      },
-    ],
-  }, async (res) => {
-    // res = res.transaction
-    let input = res.transaction.input
-    const iface = new ethers.utils.Interface(contractAbi)
-    let args = iface.decodeFunctionData(input.slice(0,10), input)
-    let functionName = iface.getFunction(input.slice(0,10)).name
-    console.log(functionName, args)
-    if (functionName == 'createRoom') {
+watch(() => store.state.contract, (contract) => {
+  if (contract) {
+    getRoomList()
+    toRaw(contract).on('RoomCreated', (id, player, position) => {
+      console.log(id, player, position)
       getRoomList()
-    } else if (functionName == 'joinRoom') {
+    })
+    toRaw(contract).on('GameStarted', (id, player1, player2) => {
+      console.log(id, player1, player2)
+      if (player1 == store.state.aaAddress || player2 == store.state.aaAddress) {
+        router.push(`/room/${id}`)
+      }
       getRoomList()
-    } else if (functionName == 'checkWin') {
+    })
+    toRaw(contract).on('GameEnded', (roomId, winner) => {
+      console.log(roomId, winner, loser)
       getRoomList()
-    } else if (functionName == 'checkOverTime') {
-      getRoomList()
-    }
-    // if (res.params.from == wallet.address) {
-    //   message.success('Create Room Success')
-    //   getRoomList()
-    // }
-  })
-})
+    })
+  }
+}, {immediate: true})
+
 onBeforeUnmount(() => {
-  alchemy.ws.off()
+  toRaw(store.state.contract).removeAllListeners('RoomCreated')
+  toRaw(store.state.contract).removeAllListeners('GameStarted')
+  toRaw(store.state.contract).removeAllListeners('GameEnded')
 })
 </script>
 <template>

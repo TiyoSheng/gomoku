@@ -1,14 +1,14 @@
 <script setup>
-import { onMounted, ref, onBeforeMount, onBeforeUnmount } from 'vue'
+import { onMounted, ref, onBeforeMount, watch, toRaw } from 'vue'
 import { useRoute } from 'vue-router'
-import { contract, wallet, contractAbi } from '../config/config'
 import { useMessage } from 'naive-ui'
-import { Alchemy, AlchemySubscription } from "alchemy-sdk"
-import { ethers } from "ethers";
+import makeBlockie from 'ethereum-blockies-base64';
+import { useGlobalStore } from '../hooks/globalStore'
+import { execute } from '../libs/inject'
 
+const { store } = useGlobalStore()
 const message = useMessage()
 const route = useRoute()
-console.log(route)
 const pan = ref(null)
 const items = ref(null)
 const isOver = ref(false)
@@ -16,6 +16,10 @@ const map = ref(new Array(m + 1).fill(0).map(() => new Array(m).fill(0)))
 const tempMap = ref(new Array(m + 1).fill(0).map(() => new Array(m).fill(0)))
 const loading = ref(false)
 const playerType = ref(0)
+const blackPlayerInfo = ref({})
+const whitePlayerInfo = ref({})
+const txList = ref([])
+const winner = ref(0)
 // router 获取参数
 const roomId = route.params.id
 const m = 15;
@@ -29,19 +33,9 @@ let room = {}
 let blackPlayer = ''
 let whitePlayer = ''
 
-const getAlchemy = () => {
-  let settings = {
-    apiKey: 'xQr0n2BqF1Hkkuw5_0YiEXeyQdSYoW1u',
-    network: 'eth-goerli'
-  }
-  let alchemy = new Alchemy(settings)
-  return alchemy
-}
-
-const alchemy = getAlchemy()
-
 const getBoard = async () => {
   loading.value = true
+  let contract = toRaw(store.state.contract)
   try {
     let board = await contract.getBoard(roomId)
     map.value = JSON.parse(JSON.stringify(board))
@@ -62,6 +56,7 @@ const getBoard = async () => {
 }
 
 const getRoomList = async () => {
+  let contract = toRaw(store.state.contract)
   const res = await contract.getWaitingRoom()
   let roomList = res
   // 通过 roomId 获取房间信息
@@ -69,47 +64,29 @@ const getRoomList = async () => {
   room = roomList.find(item => item.roomId.toString() == roomId)
   blackPlayer = room.blackPlayer
   whitePlayer = room.whitePlayer
-  if (blackPlayer == wallet?.address) {
+  if (blackPlayer == store.state.aaAddress) {
     playerType.value = 1
-  } else if (whitePlayer == wallet?.address) {
+  } else if (whitePlayer == store.state.aaAddress) {
     playerType.value = 2
+  }
+  if (room.gameState == 2) {
+    isOver.value = true
+    if (room.winner.toLocaleLowerCase() == blackPlayer.toLocaleLowerCase()) {
+      winner.value = 1
+    } else if (room.winner.toLocaleLowerCase() == whitePlayer.toLocaleLowerCase()) {
+      winner.value = 2
+    }
+  }
+  blackPlayerInfo.value = await contract.players(blackPlayer)
+  whitePlayerInfo.value = await contract.players(whitePlayer)
+}
+
+const formatAddress = (address) => {
+  if (address) {
+    return address.slice(0, 6) + '...' + address.slice(-4)
   }
 }
 
-onBeforeMount(async () => {
-  getBoard()
-  await getRoomList()
-  console.log(room)
-  alchemy.core.getTokenBalances(wallet?.address).then(async () => {
-    message.success("开始监听")
-  })
-  alchemy.ws.on({
-    method: AlchemySubscription.MINED_TRANSACTIONS,
-    addresses: [
-      {
-        to: "0x4f91f5Bce22879562FA10D83C0d5938bf0F5182a",
-      },
-    ],
-  }, async (res) => {
-    // res = res.transaction
-    let input = res.transaction.input
-    const iface = new ethers.utils.Interface(contractAbi)
-    let args = iface.decodeFunctionData(input.slice(0,10), input)
-    let functionName = iface.getFunction(input.slice(0,10)).name
-    if (functionName == 'makeMove') {
-      // 判断对手address
-      let address = ''
-      if (playerType.value == 1) {
-        address = whitePlayer
-      } else if (playerType.value == 2) {
-        address = blackPlayer
-      }
-      if (args.roomId.toString() == roomId && res.transaction.from.toLocaleLowerCase() == address.toLocaleLowerCase()) {
-        getBoard()
-      }
-    } 
-  })
-})
 onMounted(() => {
   setBoard()
 })
@@ -139,6 +116,10 @@ const setBoard = () => {
 }
 
 const isItemClicked = (column, row) => {
+  if (isOver.value) {
+    message.error('Game over')
+    return
+  };
   // 如果不是当前玩家，不允许点击
   if (playerType.value == 1 && turn % 2 != 0) {
     // 英文
@@ -148,7 +129,6 @@ const isItemClicked = (column, row) => {
     message.error('It is not your turn')
     return
   }
-  if (isOver.value) return;
   tempMap.value = new Array(m).fill(0).map(() => new Array(m).fill(0))
   if (map.value[column][row] === 0) {
     console.log(turn)
@@ -171,15 +151,15 @@ const fall = async () => {
     return;
   }
   loading.value = true
+  let contract = toRaw(store.state.contract)
   try {
-    let tx = await contract.makeMove(roomId, cell.column, (cell.row))
-    await tx.wait()
+    let tx = await execute(contract, 'makeMove', [roomId, cell.column, cell.row])
+    console.log(tx)
+    txList.value.push({ player: cell.player, tx: tx, x: cell.column, y: cell.row })
     turn++;
     map.value[cell.column][cell.row] = cell.player;
     let a = isPlayerWon();
-    console.log(a)
     if (a === true) {
-      isOver.value = true;
       console.log("Player " + cell.player + " won!");
       result = JSON.parse(JSON.stringify(result))
       // result 内的数组第一个排序，其次第二个排序
@@ -190,20 +170,24 @@ const fall = async () => {
           return a[0] - b[0]
         }
       })
-      console.log(result)
-      let checkWin = await contract.checkWin(roomId, result)
+      // 取前五个
+      result = result.slice(0, 5)
+      loading.value = true
+      let checkWin = await execute(contract, 'checkWin', [roomId, result])
+      winner.value = cell.player
+      loading.value = false
+      isOver.value = true;
       console.log(checkWin)
-      await checkWin.wait()
     } else if (a === "draw") {
       isOver.value = true;
       console.log("Draw!");
     }
+    cell = {};
   } catch (error) {
     console.log(error)
     message.error(error)
   }
   loading.value = false
-  cell = {};
 }
 
 const isPlayerWon = () => {
@@ -215,7 +199,7 @@ const isPlayerWon = () => {
       row--;
       if (mp[cell.column][row] === cell.player) {
         items++
-        result.push([cell.column, row ])
+        result.push([cell.column, row])
       };
     }
 
@@ -224,7 +208,7 @@ const isPlayerWon = () => {
       row++;
       if (mp[cell.column][row] === cell.player) {
         items++
-        result.push([cell.column, row ])
+        result.push([cell.column, row])
       };
     }
 
@@ -239,7 +223,7 @@ const isPlayerWon = () => {
       column--;
       if (mp[column][cell.row] === cell.player) {
         items++
-        result.push([column, cell.row ])
+        result.push([column, cell.row])
       };
     }
 
@@ -248,7 +232,7 @@ const isPlayerWon = () => {
       column++;
       if (mp[column][cell.row] === cell.player) {
         items++
-        result.push([column, cell.row ])
+        result.push([column, cell.row])
       };
     }
 
@@ -265,7 +249,7 @@ const isPlayerWon = () => {
       column--;
       if (mp[column][row] === cell.player) {
         items++
-        result.push([column, row ])
+        result.push([column, row])
       };
     }
 
@@ -276,7 +260,7 @@ const isPlayerWon = () => {
       column++;
       if (mp[column][row] === cell.player) {
         items++
-        result.push([column, row ])
+        result.push([column, row])
       };
     }
 
@@ -293,7 +277,7 @@ const isPlayerWon = () => {
       column--;
       if (mp[column][row] === cell.player) {
         items++
-        result.push([column, row ])
+        result.push([column, row])
       };
     }
 
@@ -304,7 +288,7 @@ const isPlayerWon = () => {
       column++;
       if (mp[column][row] === cell.player) {
         items++
-        result.push([column, row ])
+        result.push([column, row])
       };
     }
 
@@ -323,12 +307,36 @@ const isPlayerWon = () => {
   return turn === m * m && won === false ? "draw" : won;
 };
 
+watch(() => store.state.contract, async (contract) => {
+  if (contract) {
+    getBoard()
+    await getRoomList()
+    toRaw(contract).on('MoveMade', (roomId, player, column, row) => {
+      console.log(roomId, player, column, row)
+      if (player != playerType.value) {
+        txList.value.push({ player: player, x: column, y: row })
+        getBoard()
+      }
+    })
+    toRaw(contract).on('GameEnded', (id, winner) => {
+      console.log(id, winner)
+      if (id.toString() == roomId) {
+        isOver.value = true
+        if (winner.toLocaleLowerCase() == blackPlayer.toLocaleLowerCase()) {
+          winner.value = 1
+        } else if (winner.toLocaleLowerCase() == whitePlayer.toLocaleLowerCase()) {
+          winner.value = 2
+        }
+      }
+    })
+  }
+}, { immediate: true })
 
 </script>
 
 <template>
   <div class="detail flex-start">
-    <n-spin size="large" :show="loading" style="flex: 1; min-height: 400px;">
+    <n-spin size="large" :show="loading" style="min-height: 400px;">
       <div class="l">
         <div class="w">
           <canvas class="pan" ref="pan"></canvas>
@@ -340,11 +348,51 @@ const isPlayerWon = () => {
               </div>
             </div>
           </div>
+          <div v-if="isOver" class="msg">
+            <div v-if="winner == 1">Black win</div>
+            <div v-if="winner == 2">White win</div>
+            <div v-if="winner == 0 && isOver">Draw</div>
+          </div>
         </div>
       </div>
     </n-spin>
     <div class="r">
-      <n-button type="primary" @click="fall">End Fall</n-button>
+      <div class="r-hd border">
+        <div class="players flex-center-sb">
+          <div class="w">
+            <div class="flex-center">
+              <div class="avatar">
+                <img v-if="winner == 1" src="./icon.svg" alt="" class="icon">
+                <img v-if="blackPlayer" :src="makeBlockie(blackPlayer)" />
+              </div>
+              <div class="info">
+                <div>win: {{ blackPlayerInfo.wins }}</div>
+                <div>loss: {{ blackPlayerInfo.losses }}</div>
+              </div>
+            </div>
+            <div class="addr">black: {{ formatAddress(blackPlayer) }}</div>
+          </div>
+          <div class="vs">VS</div>
+          <div class="b">
+            <div class="flex-center">
+              <div class="info">
+                <div>win: {{ whitePlayerInfo.wins }}</div>
+                <div>loss: {{ whitePlayerInfo.losses }}</div>
+              </div>
+              <div class="avatar">
+                <img v-if="winner == 2" src="./icon.svg" alt="" class="icon">
+                <img v-if="whitePlayer" :src="makeBlockie(whitePlayer)" />
+              </div>
+            </div>
+            <div class="addr">white: {{ formatAddress(whitePlayer) }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="r-bd border">
+        <div class="tx" v-for="(item, index) in txList">{{ item.player == 1 ? 'BLACK' : 'WHITE' }} ({{ item.x }}, {{ item.y
+        }}) <span v-if="item.tx?.hash" @click="copy(item.tx?.hash)">tx: {{ formatAddress(item.tx?.hash) }}</span></div>
+      </div>
+      <n-button type="primary" @click="fall" style="width: 100%;">End Fall</n-button>
     </div>
   </div>
 </template>
@@ -353,15 +401,33 @@ const isPlayerWon = () => {
 .detail {
   z-index: 1;
   text-align: center;
-  background: linear-gradient(315deg, #b8c6db 0%, #f5f7fa 74%);
+  // background: linear-gradient(315deg, #b8c6db 0%, #f5f7fa 74%);
   height: calc(100vh - 66px);
   padding: 24px;
   box-sizing: border-box;
+  justify-content: center;
 
   .l {
     .w {
       position: relative;
       display: inline-block;
+      transform: rotateX(180deg);
+    }
+
+    .msg {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 999;
+      background: rgba(0, 0, 0, .6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      color: #fff;
+      font-weight: 600;
       transform: rotateX(180deg);
     }
 
@@ -411,4 +477,91 @@ const isPlayerWon = () => {
     }
   }
 
-}</style>
+  .r {
+    width: 400px;
+    margin-left: 12px;
+    font-size: 14px;
+
+    .border {
+      border: 1px solid rgba(239, 239, 245, 1);
+      padding: 12px;
+      box-sizing: border-box;
+      border-radius: 6px;
+    }
+
+    .r-hd {
+      .avatar {
+        position: relative;
+        width: 48px;
+        height: 48px;
+
+        img {
+          width: 48px;
+          height: 48px;
+          border-radius: 24px;
+        }
+
+        .icon {
+          position: absolute;
+          top: -20px;
+          width: 32px;
+          height: auto;
+          left: 0;
+          right: 0;
+          margin: auto;
+        }
+      }
+
+      .addr {
+        margin-top: 12px;
+      }
+
+      .info {
+        line-height: 1.4;
+      }
+
+      .vs {
+        font-size: 32px;
+        font-weight: 500;
+      }
+
+      .w {
+        .info {
+          margin-left: 12px
+        }
+
+        .addr {
+          text-align: left;
+        }
+      }
+
+      .b {
+        .info {
+          margin-right: 12px
+        }
+
+        .addr {
+          text-align: right;
+        }
+      }
+    }
+
+    .r-bd {
+      margin-top: 12px;
+      height: 360px;
+      margin-bottom: 12px;
+      overflow-y: auto;
+
+      .tx {
+        text-align: left;
+        font-size: 14px;
+        margin-top: 14px;
+
+        span {
+          margin-left: 4px;
+        }
+      }
+    }
+  }
+}
+</style>
