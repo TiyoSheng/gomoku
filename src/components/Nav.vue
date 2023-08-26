@@ -18,6 +18,13 @@ const formatAddress = (address) => {
   return `${address.slice(0, 6)}...${address.slice(-4)}`
 }
 
+const formatBalance = (balance) => {
+  balance = ethers.utils.formatEther(balance)
+  // 保留4位小数
+  balance = Number(balance).toFixed(4)
+  return balance
+}
+
 const copy = (value) => {
   const input = document.createElement('input')
   input.setAttribute('readonly', 'readonly')
@@ -74,14 +81,15 @@ onBeforeMount(async () => {
 <template>
   <div class="nav flex-center-sb">
     <div class="logo">logo</div>
-    <div class="wallet">
+    <div class="wallet flex-center">
       <div v-if="address && balance && balance == 0">gas余额不足请充值: <span @click="copy(address)">{{ address }}</span></div>
       <div v-if="balance > 0 && !aaAddress">
         <n-spin size="small" :show="createLoading">
           <n-button type="primary" @click="createAaWallet">创建aa钱包</n-button>
         </n-spin>
       </div>
-      <div class="flex-center" style="cursor: pointer;" v-if="balance > 0 && aaAddress" @click="copy(aaAddress)">aaAddress: {{ formatAddress(aaAddress) }}
+      <div class="flex-center" style="cursor: pointer;" v-if="balance > 0 && aaAddress" @click="copy(aaAddress)">
+        AA Account: {{ formatAddress(aaAddress) }} <label style="margin-left: 12px;">{{ formatBalance(balance) }} BNB</label>
         <img :src="makeBlockie(aaAddress)" />
       </div>
     </div>
