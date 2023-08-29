@@ -368,17 +368,6 @@ watch(() => store.state.contract, async (contract) => {
       if (player != playerType.value && id.toString() == roomId) {
         txList.value.push({ player: player, x: column, y: row })
         await getBoard()
-        let result = isPlayerWon(map.value, {column: Number(column), row: Number(row), player})
-        if (result) {
-          console.log('我输了')
-          isOver.value = true
-          if (player == 1) {
-            winner.value = 2
-          } else if (player == 2) {
-            winner.value = 1
-          }
-          return
-        }
         cell = {
           column: Number(column),
           row: Number(row),
@@ -393,7 +382,6 @@ watch(() => store.state.contract, async (contract) => {
           } else if (player == 2) {
             winner.value = 2
           }
-          
         } else {
           // let b = ai(map.value, player)
           // console.log(b)
