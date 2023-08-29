@@ -47,6 +47,10 @@ const createAaWallet = async () => {
   setAaAddress(aaAddress.value)
 }
 
+const toIndex = () => {
+  window.location.href = '/'
+}
+
 onBeforeMount(async () => {
   await init_wallet()
   let web3 = new ethers.providers.Web3Provider(window.ethereum);
@@ -80,7 +84,7 @@ onBeforeMount(async () => {
 
 <template>
   <div class="nav flex-center-sb">
-    <div class="logo">Gomoku</div>
+    <div class="logo" @click="toIndex">Gomoku</div>
     <div class="wallet flex-center">
       <div v-if="address && balance && balance == 0">gas余额不足请充值: <span @click="copy(address)">{{ address }}</span></div>
       <div v-if="balance > 0 && !aaAddress">

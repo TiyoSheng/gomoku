@@ -40,6 +40,7 @@ const getCanvas = () => {
   firework.onLoad();
 }
 
+
 const getBoard = async () => {
   loading.value = true
   let contract = toRaw(store.state.contract)
@@ -92,7 +93,7 @@ const checkBlock = async (room) => {
   if (!room) {
     room = await contract.rooms(roomId)
   }
-    // get getBlockNumber
+  // get getBlockNumber
   let web3 = new ethers.providers.Web3Provider(window.ethereum);
   interval1 = setInterval(async () => {
     let blockNumber = await web3.getBlockNumber()
@@ -129,6 +130,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   toRaw(store.state.contract).removeAllListeners('MoveMade')
   toRaw(store.state.contract).removeAllListeners('GameEnded')
+  interval1 && clearInterval(interval1)
 })
 
 const setBoard = () => {
@@ -186,7 +188,7 @@ const isItemClicked = (column, row) => {
 
 const fall = async () => {
   if (isOver.value) return;
-  if (!cell.column || !cell.row) {
+  if (!cell.player) {
     message.error('Please select a cell')
     return;
   }
@@ -235,25 +237,30 @@ const fall = async () => {
   loading.value = false
 }
 
-const isPlayerWon = () => {
-  let mp = JSON.parse(JSON.stringify(map.value));
+const isPlayerWon = (mp, c) => {
+  if (!mp) {
+    mp = JSON.parse(JSON.stringify(map.value));
+  }
+  if (!c) {
+    c = JSON.parse(JSON.stringify(cell));
+  }
   const one = () => {
     items = 1;
-    row = cell.row;
-    while (mp[cell.column][row] === cell.player && row > 0) {
+    row = c.row;
+    while (mp[c.column][row] === c.player && row > 0) {
       row--;
-      if (mp[cell.column][row] === cell.player) {
+      if (mp[c.column][row] === c.player) {
         items++
-        result.push([cell.column, row])
+        result.push([c.column, row])
       };
     }
 
-    row = cell.row;
-    while (mp[cell.column][row] === cell.player && row < m - 1) {
+    row = c.row;
+    while (mp[c.column][row] === c.player && row < m - 1) {
       row++;
-      if (mp[cell.column][row] === cell.player) {
+      if (mp[c.column][row] === c.player) {
         items++
-        result.push([cell.column, row])
+        result.push([c.column, row])
       };
     }
 
@@ -263,21 +270,21 @@ const isPlayerWon = () => {
   const two = () => {
     items = 1;
 
-    column = cell.column;
-    while (mp[column][cell.row] === cell.player && column > 0) {
+    column = c.column;
+    while (mp[column][c.row] === c.player && column > 0) {
       column--;
-      if (mp[column][cell.row] === cell.player) {
+      if (mp[column][c.row] === c.player) {
         items++
-        result.push([column, cell.row])
+        result.push([column, c.row])
       };
     }
 
-    column = cell.column;
-    while (mp[column][cell.row] === cell.player && column < m - 1) {
+    column = c.column;
+    while (mp[column][c.row] === c.player && column < m - 1) {
       column++;
-      if (mp[column][cell.row] === cell.player) {
+      if (mp[column][c.row] === c.player) {
         items++
-        result.push([column, cell.row])
+        result.push([column, c.row])
       };
     }
 
@@ -287,23 +294,23 @@ const isPlayerWon = () => {
   const three = () => {
     items = 1;
 
-    row = cell.row;
-    column = cell.column;
-    while (mp[column][row] === cell.player && row > 0 && column > 0) {
+    row = c.row;
+    column = c.column;
+    while (mp[column][row] === c.player && row > 0 && column > 0) {
       row++;
       column--;
-      if (mp[column][row] === cell.player) {
+      if (mp[column][row] === c.player) {
         items++
         result.push([column, row])
       };
     }
 
-    row = cell.row;
-    column = cell.column;
-    while (mp[column][row] === cell.player && row < m - 1 && column < m - 1) {
+    row = c.row;
+    column = c.column;
+    while (mp[column][row] === c.player && row < m - 1 && column < m - 1) {
       row--;
       column++;
-      if (mp[column][row] === cell.player) {
+      if (mp[column][row] === c.player) {
         items++
         result.push([column, row])
       };
@@ -315,23 +322,23 @@ const isPlayerWon = () => {
   const four = () => {
     items = 1;
 
-    row = cell.row;
-    column = cell.column;
-    while (mp[column][row] === cell.player && row > 0 && column > 0) {
+    row = c.row;
+    column = c.column;
+    while (mp[column][row] === c.player && row > 0 && column > 0) {
       row--;
       column--;
-      if (mp[column][row] === cell.player) {
+      if (mp[column][row] === c.player) {
         items++
         result.push([column, row])
       };
     }
 
-    row = cell.row;
-    column = cell.column;
-    while (mp[column][row] === cell.player && row < m - 1 && column < m - 1) {
+    row = c.row;
+    column = c.column;
+    while (mp[column][row] === c.player && row < m - 1 && column < m - 1) {
       row++;
       column++;
-      if (mp[column][row] === cell.player) {
+      if (mp[column][row] === c.player) {
         items++
         result.push([column, row])
       };
@@ -345,7 +352,7 @@ const isPlayerWon = () => {
     items,
     won = one() || two() || three() || four();
   if (won) {
-    result.unshift([cell.column, cell.row])
+    result.unshift([c.column, c.row])
   } else {
     result = []
   }
@@ -361,9 +368,20 @@ watch(() => store.state.contract, async (contract) => {
       if (player != playerType.value && id.toString() == roomId) {
         txList.value.push({ player: player, x: column, y: row })
         await getBoard()
+        let result = isPlayerWon(map.value, {column: Number(column), row: Number(row), player})
+        if (result) {
+          console.log('我输了')
+          isOver.value = true
+          if (player == 1) {
+            winner.value = 2
+          } else if (player == 2) {
+            winner.value = 1
+          }
+          return
+        }
         cell = {
-          column: column,
-          row: row,
+          column: Number(column),
+          row: Number(row),
           player: player,
         };
         let aa = isPlayerWon();
@@ -375,8 +393,17 @@ watch(() => store.state.contract, async (contract) => {
           } else if (player == 2) {
             winner.value = 2
           }
+          
         } else {
-
+          // let b = ai(map.value, player)
+          // console.log(b)
+          // tempMap.value = new Array(m).fill(0).map(() => new Array(m).fill(0))
+          // tempMap.value[b.x][b.y] = playerType.value;
+          // cell = {
+          //   column: b.x,
+          //   row: b.y,
+          //   player: playerType.value,
+          // };
         }
         cell = {};
       }
@@ -428,7 +455,8 @@ watch(() => isOver.value, (isOver) => {
               <div v-if="winner == 1">Black win</div>
               <div v-if="winner == 2">White win</div>
               <div v-if="winner == 0 && isOver">Draw</div>
-              <n-button type="primary" @click="() => router.push('/')" style="margin-top: 12px;">Back to roomList</n-button>
+              <n-button type="primary" @click="() => router.push('/')" style="margin-top: 12px;">Back to
+                roomList</n-button>
             </div>
           </div>
         </div>
@@ -439,7 +467,8 @@ watch(() => isOver.value, (isOver) => {
         <div class="players flex-center-sb">
           <div class="w">
             <div class="flex-center">
-              <div class="avatar" :style="{border: (!isOver && turn % 2 == 0) ? '2px solid #FF0620' : '1px solid #ccc'}">
+              <div class="avatar"
+                :style="{ border: (!isOver && turn % 2 == 0) ? '2px solid #FF0620' : '1px solid #ccc' }">
                 <img v-if="winner == 1" src="./icon.svg" alt="" class="icon">
               </div>
               <div class="info">
@@ -456,7 +485,8 @@ watch(() => isOver.value, (isOver) => {
                 <div>win: {{ whitePlayerInfo.wins }}</div>
                 <div>loss: {{ whitePlayerInfo.losses }}</div>
               </div>
-              <div class="avatar" :style="{border: (!isOver && turn % 2 != 0) ? '2px solid #FF0620' : '1px solid #ccc'}">
+              <div class="avatar"
+                :style="{ border: (!isOver && turn % 2 != 0) ? '2px solid #FF0620' : '1px solid #ccc' }">
                 <img v-if="winner == 2" src="./icon.svg" alt="" class="icon">
               </div>
             </div>
@@ -465,13 +495,15 @@ watch(() => isOver.value, (isOver) => {
         </div>
       </div>
       <div class="r-bd border">
-        <div class="tx" v-for="(item, index) in txList">{{ item.player == 1 ? 'BLACK' : 'WHITE' }} ({{ item.x }}, {{ item.y
-        }}) 
+        <div class="tx" v-for="(item, index) in txList">{{ item.player == 1 ? 'BLACK' : 'WHITE' }} ({{ item.x }}, {{
+          item.y
+        }})
           <span v-if="item.tx?.hash" @click="toScan(item.tx?.hash)">tx: {{ formatAddress(item.tx?.hash) }}</span>
           <p v-if="item.gas" style="margin-top: 4px;">gas: {{ item.gas }} BNB</p>
         </div>
       </div>
-      <n-button type="primary" :disabled="(playerType == 1 && turn % 2 != 0) || (playerType == 2 && turn % 2 == 0)" @click="fall" style="width: 100%;">Confirm Place</n-button>
+      <n-button type="primary" :disabled="(playerType == 1 && turn % 2 != 0) || (playerType == 2 && turn % 2 == 0)"
+        @click="fall" style="width: 100%;">Confirm Place</n-button>
     </div>
   </div>
 </template>
@@ -619,6 +651,7 @@ watch(() => isOver.value, (isOver) => {
         .addr {
           text-align: left;
         }
+
         .avatar {
           background: #000;
         }
@@ -632,6 +665,7 @@ watch(() => isOver.value, (isOver) => {
         .addr {
           text-align: right;
         }
+
         .avatar {
           background: #fff;
         }
