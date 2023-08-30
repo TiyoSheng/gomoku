@@ -12,7 +12,7 @@ const message = useMessage()
 const balance = ref(null)
 const aaAddress = ref('')
 const address = ref('')
-const createLoading = ref(false)
+const createLoading = ref(true)
 
 const formatAddress = (address) => {
   return `${address.slice(0, 6)}...${address.slice(-4)}`
@@ -59,6 +59,7 @@ onBeforeMount(async () => {
   address.value = accounts[0]
   // 获取钱包余额
   let bal = await web3.getBalance(accounts[0]);
+  aaAddress.value = localStorage.getItem('aa_address') || ''
   balance.value = bal.toString()
   if (balance.value == 0) {
     let interval = setInterval(async () => {
@@ -67,13 +68,13 @@ onBeforeMount(async () => {
         clearInterval(interval)
         balance.value = bal.toString()
         if (!aaAddress.value) {
-          aaAddress.value = await create_aa_wallet()
-          setAaAddress(aaAddress.value)
+          await createAaWallet()
         }
       }
     }, 10000)
+  } else if (balance.value && !aaAddress.value) {
+    await createAaWallet()
   }
-  aaAddress.value = localStorage.getItem('aa_address') || ''
   let signer = web3.getSigner();
   let contract = new ethers.Contract(contractAddress, contractAbi, signer);
   setContract(toRaw(contract))
