@@ -134,8 +134,8 @@ onBeforeUnmount(() => {
               <td>{{ room.roomId.toString() }}</td>
               <td>{{ getPlayers(room) }} / 2</td>
               <td>
-                <img v-if="room.currentPlayer == 1" src="../assets/images/blackIcon.svg" alt="">
-                <img v-if="room.currentPlayer == 2" src="../assets/images/whiteIcon.svg" alt="">
+                <img v-if="room.currentPlayer == 2" src="../assets/images/blackIcon.svg" alt="">
+                <img v-if="room.currentPlayer == 1" src="../assets/images/whiteIcon.svg" alt="">
                 {{ room.currentPlayer == 1 ? 'black' : 'white' }}
               </td>
               <td> <span class="status">{{ room.gameState == 0 ? 'waiting' : room.gameState == 1 ? 'started' :

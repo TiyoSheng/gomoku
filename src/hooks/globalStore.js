@@ -6,6 +6,7 @@ const store = reactive({
     wallet: null,
     aaAddress: null,
     address: null,
+    aaList: []
   },
 });
 
@@ -25,11 +26,15 @@ const setWallet = async (wallet) => {
   store.state.wallet = wallet
 };
 
+const setAaList = async (aaList) => {
+  store.state.aaList = aaList
+};
 
 export const useGlobalStore = () => ({
   store,
   setAddress,
   setAaAddress,
   setContract,
-  setWallet
+  setWallet,
+  setAaList
 });
