@@ -1,11 +1,13 @@
 <script setup>
-import { ref, onBeforeMount, toRaw, watch } from 'vue'
+import { ref, onBeforeMount, toRaw, watch, onBeforeUnmount } from 'vue'
 import { ethers } from "ethers";
 import { init_wallet, create_aa_wallet } from '../libs/inject'
 import { useMessage } from 'naive-ui'
 import makeBlockie from 'ethereum-blockies-base64';
 import { useGlobalStore } from '../hooks/globalStore'
 import { contractAbi, contractAddress } from '../config/config'
+
+let interval = null
 
 const { setAddress, setAaAddress, setContract, setAaList, setBalance } = useGlobalStore()
 const message = useMessage()
@@ -15,6 +17,10 @@ const address = ref('')
 const createLoading = ref(false)
 const aaList = ref([])
 const showDropdown = ref(false)
+
+onBeforeUnmount(() => {
+  interval && clearInterval(interval)
+})
 
 const formatAddress = (address) => {
   return `${address.slice(0, 6)}...${address.slice(-4)}`
@@ -86,7 +92,7 @@ onBeforeMount(async () => {
   balance.value = bal.toString()
   setBalance(balance.value)
   if (balance.value == 0) {
-    let interval = setInterval(async () => {
+    interval = setInterval(async () => {
       let bal = await web3.getBalance(accounts[0]);
       if (bal.toString() > 0) {
         clearInterval(interval)
