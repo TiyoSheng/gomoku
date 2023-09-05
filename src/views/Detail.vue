@@ -24,7 +24,7 @@ const whitePlayerInfo = ref({})
 const txList = ref([])
 const winner = ref(0)
 const turn = ref(0)
-const block = ref(0)
+const block = ref(50)
 const nowPlayer = ref(1)
 // router 获取参数
 const roomId = route.params.id
@@ -107,6 +107,7 @@ const checkBlock = async (room) => {
     let blockNumber = await web3.getBlockNumber()
     if (blockNumber - Number(room.lastMoveBlock) > 50) {
       interval1 && clearInterval(interval1)
+      block.value = 0
       loading.value = true
       try {
         let tx = await execute(contract, 'checkOverTime', [roomId])
@@ -117,7 +118,6 @@ const checkBlock = async (room) => {
         // message.error(error.reason || error.data?.message || error.message)
       }
       loading.value = false
-      block.value = 0
     } else {
       console.log(blockNumber, Number(room.lastMoveBlock))
       block.value = 50 - (blockNumber - Number(room.lastMoveBlock))
@@ -954,7 +954,7 @@ watch(() => isOver.value, (isOver) => {
           line-height: normal;
           letter-spacing: 0.6px;
           text-transform: capitalize;
-
+          cursor: pointer;
         }
       }
     }

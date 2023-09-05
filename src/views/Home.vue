@@ -24,6 +24,10 @@ const toRoom = (id) => {
 }
 
 const joinRoom = async (id) => {
+  if (store.state.balance == 0) {
+    message.error('Gas余额不足，请先充值')
+    return
+  }
   id = Number(id)
   console.log(id)
   loading.value = true
@@ -42,6 +46,10 @@ const joinRoom = async (id) => {
 }
 
 const createRoom = async () => {
+  if (store.state.balance == 0) {
+    message.error('Gas余额不足，请先充值')
+    return
+  }
   createLoading.value = true
   let contract = toRaw(store.state.contract)
   try {

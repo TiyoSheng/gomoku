@@ -7,7 +7,7 @@ import makeBlockie from 'ethereum-blockies-base64';
 import { useGlobalStore } from '../hooks/globalStore'
 import { contractAbi, contractAddress } from '../config/config'
 
-const { setAddress, setAaAddress, setContract, setAaList } = useGlobalStore()
+const { setAddress, setAaAddress, setContract, setAaList, setBalance } = useGlobalStore()
 const message = useMessage()
 const balance = ref(null)
 const aaAddress = ref('')
@@ -84,6 +84,7 @@ onBeforeMount(async () => {
     localStorage.setItem('aa_list', JSON.stringify(aaList.value))
   }
   balance.value = bal.toString()
+  setBalance(balance.value)
   if (balance.value == 0) {
     let interval = setInterval(async () => {
       let bal = await web3.getBalance(accounts[0]);
@@ -121,7 +122,7 @@ onBeforeMount(async () => {
         <div class="blance">0.0 BNB</div>
         <div class="line"></div>
         <div class="address flex-center">
-          <div class="address-type">EOA</div><span @click="copy(address)">{{ formatAddress(address) }}</span>
+          <div class="address-type">EOA</div><span @click="copy(address)">{{ address }}</span>
         </div>
         <img src="../assets/images/arrow.svg" alt="" class="left-icon">
         <div class="hint flex-center"><img src="../assets/images/hint.svg" alt="">gas余额不足请充值</div>
