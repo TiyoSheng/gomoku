@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onBeforeMount, toRaw} from 'vue'
+import { ref, onBeforeMount, toRaw, watch} from 'vue'
 import { ethers } from "ethers";
 import { init_wallet, create_aa_wallet } from '../libs/inject'
 import { useMessage } from 'naive-ui'
@@ -41,6 +41,7 @@ const copy = (value) => {
 }
 
 const createAaWallet = async () => {
+  if (createLoading) return
   createLoading.value = true
   aaAddress.value = await create_aa_wallet()
   createLoading.value = false
@@ -53,6 +54,7 @@ const toIndex = () => {
 
 onBeforeMount(async () => {
   await init_wallet()
+  console.log(window.ethereum)
   let web3 = new ethers.providers.Web3Provider(window.ethereum);
   // 获取钱包地址
   let accounts = await web3.listAccounts();
@@ -85,21 +87,31 @@ onBeforeMount(async () => {
   //   wallet.value = await create_aa_wallet()
   // }
 })
+
 </script>
 
 <template>
   <div class="nav flex-center-sb">
     <div class="logo" @click="toIndex">Gomoku</div>
-    <div class="wallet flex-center">
-      <div v-if="address && balance && balance == 0">gas余额不足请充值: <span @click="copy(address)">{{ address }}</span></div>
-      <div v-if="balance > 0 && !aaAddress">
-        <n-spin size="small" :show="createLoading">
-          <n-button type="primary" @click="createAaWallet">创建aa钱包</n-button>
-        </n-spin>
+    <div class="wallet">
+      <div v-if="address && balance && balance == 0" class="flex-center block">
+        <div class="blance">0.0 BNB</div>
+        <div class="line"></div>
+        <div class="address flex-center"><div class="address-type">EOA</div><span @click="copy(address)">{{ formatAddress(address) }}</span></div>
+        <img src="../assets/images/arrow.svg" alt="" class="left-icon">
+        <div class="hint flex-center"><img src="../assets/images/hint.svg" alt="">gas余额不足请充值</div>
       </div>
-      <div class="flex-center" style="cursor: pointer;" v-if="balance > 0 && aaAddress" @click="copy(aaAddress)">
-        AA Account: {{ formatAddress(aaAddress) }} <label style="margin-left: 12px;">{{ formatBalance(balance) }} BNB</label>
-        <img :src="makeBlockie(aaAddress)" />
+      <div v-if="balance > 0 && !aaAddress">
+        <div class="create-btn" @click="createAaWallet">
+          <!-- <span v-if="createLoading" class="loader"></span> -->
+          <img v-if="createLoading" src="../assets/images/loading.svg" alt="">
+          Creating AA wallet
+        </div>
+      </div>
+      <div class="flex-center block" v-if="balance > 0 && aaAddress">
+        <div class="blance">{{ formatBalance(balance) }} BNB</div>
+        <div class="line"></div>
+        <div class="address flex-center"><div class="address-type">AA</div><span @click="copy(aaAddress)">{{ formatAddress(aaAddress) }}</span></div>
       </div>
     </div>
   </div>
@@ -107,26 +119,115 @@ onBeforeMount(async () => {
 
 <style scoped lang="scss">
 .nav {
-  height: 66px;
+  height: 78px;
   padding: 0 24px;
   box-sizing: border-box;
-  border-bottom: 1px solid #E5E5E5;
   .logo {
     font-size: 28px;
-    font-weight: bold;
+    font-family: 'Montserrat';
+    color: #fff;
+    font-style: italic;
+    text-transform: capitalize;
   }
   .wallet {
-    font-size: 14px;
-    span  {
-      color: #1684fc;
-      cursor: pointer;
+    border-radius: 10px;
+    border: 1.5px solid rgba(133, 141, 153, 0.33);
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    .block {
+      height: 44px;
+      padding: 0 16px;
+      box-sizing: border-box;
     }
-    img {
-      width: 32px;
-      height: 32px;
-      margin-left: 12px;
-      border-radius: 16px;
+    .blance {
+      color: var(--ffffff, #FFF);
+      font-family: Montserrat-Medium;
+      font-size: 14px;
+      font-style: normal;
+      font-weight: 500;
     }
+    .line {
+      width: 1px;
+      height: 12px;
+      background: #FFF;
+      opacity: 0.2;
+      margin: 0 12px;
+    }
+    .address {
+      color: var(--ffffff, #FFF);
+      font-family: Montserrat-Medium;
+      font-size: 14px;
+      font-style: normal;
+      .address-type {
+        display: flex;
+        padding: 4px 6px;
+        align-items: center;
+        border-radius: 4px;
+        background: rgba(157, 255, 133, 0.12);
+        color: #9DFF85;
+        font-size: 13px;
+        letter-spacing: 0.26px;
+        text-transform: capitalize;
+        margin-right: 6px;
+      }
+      span {
+        cursor: pointer;
+      }
+    }
+    .left-icon {
+      margin: 0 8px;
+      width: 24px;
+      height: 24px;
+    }
+    .hint {
+      border-radius: 6px;
+      background: linear-gradient(95deg, #FFF0C0 -19.65%, #FED863 132.44%);
+      height: 34px;
+      color: #121318;
+      font-family: Montserrat-Medium;
+      font-size: 13px;
+      font-style: normal;
+      line-height: normal;
+      letter-spacing: 0.26px;
+      text-transform: capitalize;
+      padding: 0 8px;
+      box-sizing: border-box;
+      img {
+        width: 14px;
+        height: 14px;
+        margin-right: 6px;
+      }
+    }
+    .create-btn {
+      color: #FFF;
+      font-family: Montserrat-Medium;
+      font-size: 15px;
+      font-style: normal;
+      line-height: normal;
+      text-transform: capitalize;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 205px;
+      height: 44px;
+      background: rgba(133, 141, 153, 0.20);
+      img {
+        width: 20px;
+        height: 20px;
+        animation: mulShdSpin 1.6s infinite linear;
+        margin-right: 8px;
+      }
+    }
+  }
+}
+@keyframes mulShdSpin {
+  // 旋转
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
   }
 }
 </style>

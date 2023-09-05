@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onBeforeUnmount, watch, toRaw} from 'vue'
+import { ref, onBeforeUnmount, watch, toRaw } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMessage } from 'naive-ui'
 import { execute } from '../libs/inject'
@@ -31,7 +31,7 @@ const joinRoom = async (id) => {
   try {
     const tx = await execute(contract, 'joinRoom', [id])
     console.log(tx)
-    message.success('Join Room Success')
+    // message.success('Join Room Success')
     // getRoomList()
     // router.push(`/room/${id}`)
   } catch (error) {
@@ -47,7 +47,7 @@ const createRoom = async () => {
   try {
     const tx = await execute(contract, 'createRoom', [positionValue.value])
     isWaiting.value = true
-    message.success('Create Room Success')
+    // message.success('Create Room Success')
   } catch (error) {
     console.log(error)
     message.error(error.reason || error.data?.message || error.message || error)
@@ -107,7 +107,7 @@ watch(() => store.state.contract, (contract) => {
       getRoomList()
     })
   }
-}, {immediate: true})
+}, { immediate: true })
 
 onBeforeUnmount(() => {
   toRaw(store.state.contract).removeAllListeners('RoomCreated')
@@ -117,52 +117,57 @@ onBeforeUnmount(() => {
 </script>
 <template>
   <div class="home flex-start">
-    <n-spin size="large" :show="loading" style="flex: 1; min-height: 400px;">
+    <n-spin size="large" :show="loading" style="flex: 0 0 746px; height: 100%;">
       <div class="l">
-        <div class="title">Room List</div>
-        <n-table :single-line="false" :loading="loading">
-          <thead>
-            <tr>
+        <div class="table">
+          <div class="thead">
+            <div class="tr">
               <th>Room ID</th>
               <th>Players</th>
               <th>Position</th>
               <th>Status</th>
               <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(room, index) in roomList" :key="index">
+            </div>
+          </div>
+          <div class="tbody">
+            <div class="tr" v-for="(room, index) in roomList" :key="index">
               <td>{{ room.roomId.toString() }}</td>
               <td>{{ getPlayers(room) }} / 2</td>
-              <td>{{ room.currentPlayer == 1 ? 'black' : 'white' }}</td>
-              <td>{{ room.gameState == 0 ? 'waiting' : room.gameState == 1 ? 'started' : room.gameState == 2 ? 'ended' :
-                '' }}</td>
               <td>
-                <n-button type="primary" size="small" v-if="isShowJoin(room)" @click="joinRoom(room.roomId)">Join</n-button>
-                <n-button type="primary" size="small" v-if="room.gameState == 1 && (room.blackPlayer == store.state.aaAddress || room.whitePlayer == store.state.aaAddress)"
-                  @click="toRoom(room.roomId)">Join</n-button>
+                <img v-if="room.currentPlayer == 1" src="../assets/images/blackIcon.svg" alt="">
+                <img v-if="room.currentPlayer == 2" src="../assets/images/whiteIcon.svg" alt="">
+                {{ room.currentPlayer == 1 ? 'black' : 'white' }}
               </td>
-            </tr>
-          </tbody>
-        </n-table>
+              <td> <span class="status">{{ room.gameState == 0 ? 'waiting' : room.gameState == 1 ? 'started' :
+                room.gameState == 2 ? 'ended' :
+                  '' }}</span></td>
+              <td>
+                <div class="join-btn" v-if="isShowJoin(room)" @click="joinRoom(room.roomId)">Join</div>
+                <div class="join-btn"
+                  v-if="room.gameState == 1 && (room.blackPlayer == store.state.aaAddress || room.whitePlayer == store.state.aaAddress)"
+                  @click="toRoom(room.roomId)">Join</div>
+              </td>
+            </div>
+          </div>
+        </div>
       </div>
     </n-spin>
     <n-spin size="large" :show="createLoading">
       <div v-if="!isWaiting" class="r">
         <div class="title">Create Room</div>
-        <div class="img"></div>
         <div class="select">
-          <p>Select Your Position, black first</p>
-          <n-select placeholder="Select Your Position" style="width: 100%;" v-model:value="positionValue"
-            :options="options" />
+          <p>Select Your Position, black frist ⬇️</p>
+          <div class="options">
+            <div v-for="item in options" :class="['options-item', positionValue == item.value ? 'options-item-a' : '']"
+              :key="item.value" @click="() => positionValue = item.value">{{ item.label }}</div>
+          </div>
         </div>
-        <n-button type="primary" style="width: 100%; margin-top: 24px;" @click="createRoom">Create</n-button>
+        <div class="create-btn" style="width: 100%; margin-top: 24px;" @click="createRoom">✨ create room</div>
       </div>
       <div v-else class="r">
-        <div class="title">Waiting</div>
-        <div class="img"></div>
-        <div class="select">
-          <p>Your roomId is {{ createRoomId }}</p>
+        <div class="title">Waiting...</div>
+        <div class="select" v-if="createRoomId > -1">
+          <p>Your roomId is <span>{{ createRoomId }}</span></p>
         </div>
       </div>
     </n-spin>
@@ -171,46 +176,234 @@ onBeforeUnmount(() => {
 
 <style scoped lang="scss">
 .home {
-  height: calc(100vh - 66px);
-  padding: 24px;
+  height: calc(100vh - 78px);
+  padding: 32px 0;
   box-sizing: border-box;
-
-  .title {
-    font-size: 24px;
-    font-weight: bold;
-    margin-bottom: 24px;
-  }
+  justify-content: center;
 
   .l {
-    flex: 1;
-    border: 1px solid rgba(239, 239, 245, 1);
-    border-radius: 4px;
-    padding: 12px;
-    box-sizing: border-box;
-  }
-
-  .r {
-    width: 500px;
-    margin-left: 24px;
-    border: 1px solid rgba(239, 239, 245, 1);
-    border-radius: 4px;
-    padding: 12px;
+    width: 746px;
+    height: 100%;
+    padding: 10px;
+    border-radius: 12px;
+    background: #FFF;
     box-sizing: border-box;
 
-    .img {
-      width: 200px;
-      height: 200px;
-      background: #ccc;
-    }
+    .table {
+      .thead {
+        width: 726px;
+        border-radius: 8px;
+        overflow: hidden;
 
-    .select {
-      margin-top: 24px;
+        .tr {
+          display: flex;
+          align-items: center;
+          width: 726px;
+          border-radius: 8px;
 
-      p {
-        font-size: 16px;
-        font-weight: bold;
-        margin-bottom: 12px;
+          th {
+            flex: 1;
+            align-items: center;
+            background: #F1F2F6;
+            height: 46px;
+            display: flex;
+            align-items: center;
+            color: #121318;
+            font-family: 'Montserrat-Medium';
+            font-size: 15px;
+            font-style: normal;
+            font-weight: 500;
+            line-height: normal;
+            text-transform: capitalize;
+            padding: 0 24px;
+            box-sizing: border-box;
+          }
+        }
+      }
+
+      .tbody {
+        .tr {
+          display: flex;
+          align-items: center;
+          width: 726px;
+          border-bottom: 1px solid #F2F3F7;
+          border-radius: 8px;
+
+          &:last-child {
+            // border-bottom: none;
+          }
+
+          &:hover {
+            background: #F0F2F6;
+          }
+
+          td {
+            flex: 1;
+            height: 64px;
+            padding: 0 24px;
+            box-sizing: border-box;
+            color: #121318;
+            font-family: 'Montserrat-Regular';
+            font-size: 15px;
+            font-style: normal;
+            font-weight: 400;
+            line-height: normal;
+            letter-spacing: 0.6px;
+            text-transform: capitalize;
+            display: flex;
+            align-items: center;
+
+            img {
+              width: 16px;
+              height: auto;
+              margin-right: 8px;
+            }
+
+            span {
+              font-family: 'Montserrat-Medium';
+              color: #0B8F6F;
+              font-size: 13px;
+              display: flex;
+              padding: 4px 6px;
+              align-items: center;
+              border-radius: 4px;
+              background: rgba(11, 143, 111, 0.12);
+            }
+
+            .join-btn {
+              border-radius: 6px;
+              border: 1px solid #121318;
+              color: #121318;
+              font-family: 'Montserrat-bold';
+              font-size: 15px;
+              font-style: normal;
+              line-height: normal;
+              letter-spacing: 0.3px;
+              text-transform: capitalize;
+              width: 66px;
+              height: 34px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              cursor: pointer;
+
+              &:hover {
+                background: #121318;
+                color: #FFF;
+              }
+            }
+          }
+        }
       }
     }
   }
-}</style>
+
+  .r {
+    width: 330px;
+    margin-left: 24px;
+    border-radius: 12px;
+    background: #FED863;
+    padding: 32px 24px;
+    box-sizing: border-box;
+
+    .title {
+      color: #121318;
+      font-family: Montserrat-bold;
+      font-size: 18px;
+      font-style: normal;
+      line-height: normal;
+      letter-spacing: 0.72px;
+      text-transform: capitalize;
+    }
+
+    .select {
+      margin-top: 8px;
+
+      p {
+        color: #121318;
+        font-family: Montserrat-Regular;
+        font-size: 14px;
+        font-style: normal;
+        font-weight: 400;
+        line-height: normal;
+        letter-spacing: 0.56px;
+        text-transform: capitalize;
+        display: flex;
+        align-items: flex-end;
+        span {
+          color: #121318;
+          font-family: Montserrat-bold;
+          font-size: 36px;
+          font-style: italic;
+          line-height: 36px; /* 100% */
+          letter-spacing: 1.44px;
+          margin-left: 8px;
+        }
+      }
+
+      .options {
+        margin-top: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+
+        .options-item {
+          border-radius: 8px;
+          border: 2px solid rgba(48, 50, 53, 0.20);
+          width: 133px;
+          flex: 0 0 133px;
+          height: 66px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #121318;
+          font-family: Montserrat-bold;
+          font-size: 15px;
+          font-style: normal;
+          line-height: normal;
+          letter-spacing: 0.6px;
+          text-transform: capitalize;
+          cursor: pointer;
+
+          &.options-item-a {
+            border: 2px solid #121318;
+            position: relative;
+
+            &::after {
+              content: '';
+              position: absolute;
+              right: 0;
+              bottom: 0;
+              width: 32px;
+              height: 32px;
+              background: url(../assets/images/select.svg) no-repeat;
+              background-position: 0 0;
+              background-size: 100% 100%;
+            }
+          }
+        }
+      }
+    }
+
+    .create-btn {
+      margin-top: 24px;
+      width: 100%;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #FFF;
+      font-family: Montserrat-600;
+      font-size: 18px;
+      font-style: normal;
+      line-height: normal;
+      letter-spacing: 0.72px;
+      text-transform: capitalize;
+      border-radius: 8px;
+      background: #121318;
+      cursor: pointer;
+    }
+  }
+}
+</style>

@@ -6,6 +6,7 @@ import { useGlobalStore } from '../hooks/globalStore'
 import { execute } from '../libs/inject'
 import firework from '../libs/firework';
 import { ethers } from "ethers";
+import makeBlockie from 'ethereum-blockies-base64';
 
 const { store } = useGlobalStore()
 const message = useMessage()
@@ -23,10 +24,17 @@ const whitePlayerInfo = ref({})
 const txList = ref([])
 const winner = ref(0)
 const turn = ref(0)
+const block = ref(0)
+const nowPlayer = ref(1)
 // router 获取参数
 const roomId = route.params.id
 const m = 15;
-const cellWidth = 35
+// const cellWidth = 35
+// 52/1680
+// 获取可见范围宽度
+console.log(document.documentElement.clientWidth)
+const documentClientWidth = document.documentElement.clientWidth
+const cellWidth = documentClientWidth >= 1680 ? 52 : 44
 const boardWidth = m * cellWidth
 const k = 5
 let cell = {}
@@ -109,6 +117,10 @@ const checkBlock = async (room) => {
         // message.error(error.reason || error.data?.message || error.message)
       }
       loading.value = false
+      block.value = 0
+    } else {
+      console.log(blockNumber, Number(room.lastMoveBlock))
+      block.value = 50 - (blockNumber - Number(room.lastMoveBlock))
     }
   }, 10000)
 }
@@ -136,22 +148,24 @@ onBeforeUnmount(() => {
 const setBoard = () => {
   const elementBoard = pan.value;
   const elementContext = elementBoard.getContext("2d");
-  elementBoard.setAttribute("width", boardWidth);
-  elementBoard.setAttribute("height", boardWidth);
+  elementBoard.setAttribute("width", boardWidth * 2);
+  elementBoard.setAttribute("height", boardWidth * 2);
+  elementBoard.style.width = boardWidth + "px";
+  elementBoard.style.height = boardWidth + "px";
   elementContext.beginPath();
   elementContext.lineWidth = "1";
   elementContext.strokeStyle = "#6d4c36";
 
   for (let i = 0; i < m; i++) {
-    elementContext.moveTo(cellWidth * i + cellWidth / 2, cellWidth / 2);
+    elementContext.moveTo(cellWidth * 2 * i + cellWidth, cellWidth);
     elementContext.lineTo(
-      cellWidth * i + cellWidth / 2,
-      boardWidth - cellWidth / 2
+      cellWidth * i * 2 + cellWidth,
+      boardWidth * 2 - cellWidth
     );
-    elementContext.moveTo(cellWidth / 2, cellWidth * i + cellWidth / 2);
+    elementContext.moveTo(cellWidth, cellWidth * i * 2 + cellWidth);
     elementContext.lineTo(
-      boardWidth - cellWidth / 2,
-      cellWidth * i + cellWidth / 2
+      boardWidth * 2 - cellWidth,
+      cellWidth * i * 2 + cellWidth
     );
   }
   elementContext.stroke();
@@ -383,20 +397,19 @@ watch(() => store.state.contract, async (contract) => {
             winner.value = 2
           }
         } else {
-          // let b = ai(map.value, player)
-          // console.log(b)
-          // tempMap.value = new Array(m).fill(0).map(() => new Array(m).fill(0))
-          // tempMap.value[b.x][b.y] = playerType.value;
-          // cell = {
-          //   column: b.x,
-          //   row: b.y,
-          //   player: playerType.value,
-          // };
+          block.value = 50
+        checkBlock()
         }
         cell = {};
       }
       if (player == playerType.value && id.toString() == roomId) {
+        block.value = 50
         checkBlock()
+      }
+      if (player == 1) {
+        nowPlayer.value = 2
+      } else if (player == 2) {
+        nowPlayer.value = 1
       }
     })
     toRaw(contract).on('GameEnded', (id, win) => {
@@ -425,8 +438,8 @@ watch(() => isOver.value, (isOver) => {
 
 <template>
   <div class="detail flex-start">
-    <n-spin size="large" :show="loading" style="min-height: 400px;">
       <div class="l">
+        <n-spin size="large" :show="loading" style="min-height: 400px;">
         <div class="w">
           <canvas class="pan" ref="pan"></canvas>
           <canvas v-if="isOver && winner == playerType" id="canvas" class="firework"></canvas>
@@ -434,7 +447,9 @@ watch(() => isOver.value, (isOver) => {
             <div class="row flex-center" v-for="(row, rowIndex) in map" :style="{ height: cellWidth + 'px' }">
               <div v-for="(column, columnIndex) in row"
                 :class="['item', ((map[columnIndex] && map[columnIndex][rowIndex] == 1) || (tempMap[columnIndex] && tempMap[columnIndex][rowIndex] == 1)) ? 'player-1' : ((map[columnIndex] && map[columnIndex][rowIndex] == 2) || (tempMap[columnIndex] && tempMap[columnIndex][rowIndex] == 2)) ? 'player-2' : '']"
-                :style="{ width: cellWidth + 'px' }" @click="isItemClicked(columnIndex, rowIndex)">
+                :style="{ width: cellWidth + 'px', height: cellWidth + 'px' }"
+                @click="isItemClicked(columnIndex, rowIndex)">
+                <div class="after" :style="{ width: (cellWidth - 2) + 'px', height: (cellWidth - 2) + 'px' }"></div>
               </div>
             </div>
           </div>
@@ -448,50 +463,83 @@ watch(() => isOver.value, (isOver) => {
             </div>
           </div>
         </div>
+      </n-spin>
       </div>
-    </n-spin>
     <div class="r">
-      <div class="r-hd border">
-        <div class="players flex-center-sb">
-          <div class="w">
-            <div class="flex-center">
-              <div class="avatar"
-                :style="{ border: (!isOver && turn % 2 == 0) ? '2px solid #FF0620' : '1px solid #ccc' }">
-                <img v-if="winner == 1" src="./icon.svg" alt="" class="icon">
+      <div class="r-hd">
+        <div class="players">
+          <div class="block w">
+            <div v-if="playerType == 2" class="your">Your</div>
+            <img v-if="winner == 2" src="../assets/images/white_win.svg" alt="" class="bg">
+            <img v-else-if="winner == 0 && nowPlayer == 2" src="../assets/images/white_a.svg" alt="" class="bg">
+            <img v-else src="../assets/images/white.svg" alt="" class="bg">
+            <div class="user-info">
+              <div class="flex-center">
+                <div :class="['avatar', winner == 2 ? 'winner' : '']">
+                  <img v-if="winner == 2" src="../assets/images/icon.svg" alt="" class="icon">
+                  <img v-if="whitePlayer" :src="makeBlockie(whitePlayer)" class="avatar-img" />
+                  <img src="../assets/images/player_w.svg" alt="" class="player">
+                </div>
+                <div class="info">
+                  <div v-if="!winner" class="down-time"><span :style="{color: nowPlayer == 2 ? '#FED863' : 'rgba(255, 255, 255, 0.20)'}">{{ nowPlayer == 2 ? block : '00' }}</span>Blocks</div>
+                  <div v-else class="result" :style="{color: winner == 2 ? '#9DFF85' : '#FF6161'}">{{ winner == 2 ? 'Win' : 'Loss' }}</div>
+                  <div class="addr"><span>white</span>{{ formatAddress(whitePlayer) }}</div>
+                </div>
               </div>
-              <div class="info">
-                <div>win: {{ blackPlayerInfo.wins }}</div>
-                <div>loss: {{ blackPlayerInfo.losses }}</div>
+              <div class="victory">
+                <div><span>{{ whitePlayerInfo.wins }}</span>Win</div>
+                <p class="line"></p>
+                <div><span style="color: #FF6161;">{{ whitePlayerInfo.losses }}</span>Loss</div>
               </div>
             </div>
-            <div class="addr">{{ formatAddress(blackPlayer) }}</div>
           </div>
-          <div class="vs">VS</div>
-          <div class="b">
-            <div class="flex-center">
-              <div class="info">
-                <div>win: {{ whitePlayerInfo.wins }}</div>
-                <div>loss: {{ whitePlayerInfo.losses }}</div>
+          <div class="vs"><img src="../assets/images/vs.png" alt=""></div>
+          <div class="block b">
+            <div v-if="playerType == 1" class="your">Your</div>
+            <img v-if="winner == 1" src="../assets/images/black_win.svg" alt="" class="bg">
+            <img v-else-if="winner == 0 && nowPlayer == 1" src="../assets/images/black_a.svg" alt="" class="bg">
+            <img v-else src="../assets/images/black.svg" alt="" class="bg">
+            <div class="user-info">
+              <div class="flex-center">
+                <div class="info">
+                  <div v-if="!winner" class="down-time"><span :style="{color: nowPlayer == 1 ? '#FED863' : 'rgba(255, 255, 255, 0.20)'}">{{ nowPlayer == 1 && block > 0 ? block : '00' }}</span>Blocks</div>
+                  <div v-else class="result" :style="{color: winner == 1 ? '#9DFF85' : '#FF6161'}">{{ winner == 1 ? 'Win' : 'Loss' }}</div>
+                  <div class="addr"><span>Black</span>{{ formatAddress(blackPlayer) }}</div>
+                </div>
+                <div :class="['avatar', winner == 1 ? 'winner' : '']">
+                  <img v-if="winner == 1" src="../assets/images/icon.svg" alt="" class="icon">
+                  <img v-if="blackPlayer" :src="makeBlockie(blackPlayer)" class="avatar-img" />
+                  <img src="../assets/images/player_b.svg" alt="" class="player">
+                </div>
               </div>
-              <div class="avatar"
-                :style="{ border: (!isOver && turn % 2 != 0) ? '2px solid #FF0620' : '1px solid #ccc' }">
-                <img v-if="winner == 2" src="./icon.svg" alt="" class="icon">
+              <div class="victory">
+                <div><span>{{ blackPlayerInfo.wins }}</span>Win</div>
+                <p class="line"></p>
+                <div><span style="color: #FF6161;">{{ blackPlayerInfo.losses }}</span>Loss</div>
               </div>
             </div>
-            <div class="addr">{{ formatAddress(whitePlayer) }}</div>
           </div>
         </div>
       </div>
-      <div class="r-bd border">
-        <div class="tx" v-for="(item, index) in txList">{{ item.player == 1 ? 'BLACK' : 'WHITE' }} ({{ item.x }}, {{
-          item.y
-        }})
-          <span v-if="item.tx?.hash" @click="toScan(item.tx?.hash)">tx: {{ formatAddress(item.tx?.hash) }}</span>
-          <p v-if="item.gas" style="margin-top: 4px;">gas: {{ item.gas }} BNB</p>
+      <div class="r-bd">
+        <div class="tag">🌈 Your Steps</div>
+        <div class="tx-w">
+          <div class="tx" v-for="(item, index) in txList">
+            <img :src="makeBlockie(item.player == 1 ? blackPlayer : whitePlayer)" alt="" class="tx-avatar">
+            <div class="tx-address">{{ formatAddress(item.player == 1 ? blackPlayer : whitePlayer) }}:</div>
+            <img v-if="item.player == 1" src="../assets//images/player_b.svg" alt="" class="tx-player">
+            <img v-else src="../assets//images/player_w.svg" alt="" class="tx-player">
+            <div class="step">{{ item.player == 1 ? 'Black' : 'White' }} ({{ item.x }},{{ item.y }})</div>
+            <span v-if="item.tx?.hash" @click="toScan(item.tx?.hash)" class="tx-hash">tx: {{ formatAddress(item.tx?.hash)
+            }}</span>
+            <!-- <p v-if="item.gas" style="margin-top: 4px;">gas: {{ item.gas }} BNB</p> -->
+          </div>
         </div>
+
       </div>
-      <n-button type="primary" :disabled="(playerType == 1 && turn % 2 != 0) || (playerType == 2 && turn % 2 == 0)"
-        @click="fall" style="width: 100%;">Confirm Place</n-button>
+      <div @click="fall" style="width: 100%;"
+        :class="['confirm-btn', (playerType == 1 && turn % 2 != 0) || (playerType == 2 && turn % 2 == 0) ? 'disabled' : '']">
+        Confirm Place</div>
     </div>
   </div>
 </template>
@@ -500,13 +548,17 @@ watch(() => isOver.value, (isOver) => {
 .detail {
   z-index: 1;
   text-align: center;
-  // background: linear-gradient(315deg, #b8c6db 0%, #f5f7fa 74%);
-  height: calc(100vh - 66px);
+  height: calc(100vh - 78px);
   padding: 24px;
   box-sizing: border-box;
   justify-content: center;
 
   .l {
+    background: linear-gradient(225deg, #d99058 0%, #f8de7e 74%);
+    border-radius: 3px 3px 8px 8px;
+    padding: 18px;
+    box-sizing: border-box;
+
     .w {
       position: relative;
       display: inline-block;
@@ -515,10 +567,10 @@ watch(() => isOver.value, (isOver) => {
 
     .msg {
       position: absolute;
-      top: 0;
-      bottom: 0;
-      left: 0;
-      right: 0;
+      top: -18px;
+      bottom: -18px;
+      left: -18px;
+      right: -18px;
       z-index: 999;
       background: rgba(0, 0, 0, .2);
       display: flex;
@@ -532,16 +584,14 @@ watch(() => isOver.value, (isOver) => {
 
     canvas {
       z-index: 2;
-      background: linear-gradient(225deg, #d99058 0%, #f8de7e 74%);
-      border-radius: 2px 2px 6px 6px;
     }
 
     .firework {
       position: absolute;
-      top: 0;
-      bottom: 0;
-      left: 0;
-      right: 0;
+      top: -18px;
+      bottom: -18px;
+      left: -18px;
+      right: -18px;
       z-index: 9;
       opacity: .8;
     }
@@ -561,9 +611,9 @@ watch(() => isOver.value, (isOver) => {
         height: 35px;
         cursor: crosshair;
 
-        &.player-1::after,
-        &.player-2::after {
-          content: "";
+        &.player-1 .after,
+        &.player-2 .after {
+
           position: absolute;
           top: 50%;
           left: 50%;
@@ -575,11 +625,11 @@ watch(() => isOver.value, (isOver) => {
           box-shadow: 0 -3px 6px rgba(0, 0, 0, 0.16), 0 -3px 6px rgba(0, 0, 0, 0.23);
         }
 
-        &.player-1::after {
+        &.player-1 .after {
           background-image: linear-gradient(315deg, #000 0%, #444 74%);
         }
 
-        &.player-2::after {
+        &.player-2 .after {
           background-image: linear-gradient(315deg, #999 0%, #fff 74%);
         }
       }
@@ -587,8 +637,9 @@ watch(() => isOver.value, (isOver) => {
   }
 
   .r {
-    width: 400px;
-    margin-left: 12px;
+    width: 640px;
+    flex: 0 0 640px;
+    margin-left: 24px;
     font-size: 14px;
 
     .border {
@@ -599,83 +650,349 @@ watch(() => isOver.value, (isOver) => {
     }
 
     .r-hd {
-      .avatar {
+      .players {
         position: relative;
-        width: 48px;
-        height: 48px;
-        border-radius: 24px;
-        border: 1px solid #ccc;
-        box-sizing: border-box;
+        width: 100%;
+        height: 196px;
+        font-size: 0;
 
-        .icon {
-          position: absolute;
-          top: -20px;
-          width: 32px;
+        .bg {
+          width: 100%;
           height: auto;
+        }
+
+        .vs {
+          position: absolute;
           left: 0;
           right: 0;
+          top: 0;
+          bottom: 0;
           margin: auto;
-        }
-      }
+          width: 112px;
+          height: 112px;
+          z-index: 9;
 
-      .addr {
-        margin-top: 12px;
-      }
-
-      .info {
-        line-height: 1.4;
-      }
-
-      .vs {
-        font-size: 32px;
-        font-weight: 500;
-      }
-
-      .w {
-        .info {
-          margin-left: 12px
+          img {
+            width: 112px;
+            height: auto;
+          }
         }
 
-        .addr {
-          text-align: left;
-        }
+        .block {
+          position: absolute;
+          right: 0;
+          top: 0;
+          width: 338px;
 
-        .avatar {
-          background: #000;
-        }
-      }
+          &.w {
+            left: 0;
+            .your {
+              border-radius: 0px 8px;
+              background: rgba(254, 216, 99, 0.20);
+              backdrop-filter: blur(6px);
+              position: absolute;
+              top: 0;
+              left: 0;
+              display: flex;
+              padding: 4px 10px;
+              justify-content: center;
+              align-items: center;
+              color: #FED863;
+              font-family: Montserrat-bold;
+              font-size: 13px;
+              font-style: normal;
+              line-height: normal;
+              text-transform: capitalize;
+            }
+          }
 
-      .b {
-        .info {
-          margin-right: 12px
-        }
+          &.b {
+            right: 0;
+            .your {
+              border-radius: 0px 8px;
+              background: rgba(254, 216, 99, 0.20);
+              backdrop-filter: blur(6px);
+              position: absolute;
+              top: 0;
+              right: 0;
+              display: flex;
+              padding: 4px 10px;
+              justify-content: center;
+              align-items: center;
+              color: #FED863;
+              font-family: Montserrat-bold;
+              font-size: 13px;
+              font-style: normal;
+              line-height: normal;
+              text-transform: capitalize;
+            }
 
-        .addr {
-          text-align: right;
-        }
+            .user-info {
+              padding: 24px 24px 24px 74px;
+              text-align: right;
 
-        .avatar {
-          background: #fff;
+              .info {
+                margin-left: 0;
+                margin-right: 16px;
+                text-align: right;
+              }
+
+              .avatar {
+                .player {
+                  left: 4px;
+                  right: auto;
+                }
+              }
+            }
+          }
+
+          .user-info {
+            width: 100%;
+            height: 100%;
+            padding: 24px 74px 24px 24px;
+            box-sizing: border-box;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+
+            .avatar {
+              position: relative;
+              width: 80px;
+              height: 80px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              border-radius: 24px;
+              box-sizing: border-box;
+              &.winner {
+                border-radius: 50%;
+                border: 2px solid #FED863;
+              }
+
+              .icon {
+                position: absolute;
+                top: -26px;
+                width: 46px;
+                height: auto;
+                right: -10px;
+                margin: auto;
+              }
+
+              .avatar-img {
+                width: 68px;
+                height: auto;
+                border-radius: 50%;
+              }
+
+              .player {
+                position: absolute;
+                right: 4px;
+                bottom: 4px;
+                border-radius: 24px;
+                width: 24px;
+                height: auto;
+                background: rgba(0, 0, 0, .2);
+              }
+            }
+
+            .info {
+              text-align: left;
+              margin-left: 16px;
+
+              .down-time {
+                color: rgba(255, 255, 255, 0.20);
+                font-family: Montserrat-Medium;
+                font-size: 13px;
+                font-style: italic;
+                font-weight: 500;
+                line-height: normal;
+                text-transform: capitalize;
+
+                span {
+                  font-family: Montserrat-600;
+                  margin-right: 4px;
+                  font-size: 36px;
+                  font-style: normal;
+                }
+              }
+
+              .result {
+                color: #9DFF85;
+                font-family: Montserrat-bold;
+                font-size: 36px;
+                font-style: italic;
+                line-height: normal;
+                text-transform: capitalize;
+
+              }
+
+              .addr {
+                color: rgba(255, 255, 255, 0.50);
+                font-family: Montserrat-Regular;
+                font-size: 12px;
+                font-style: normal;
+                font-weight: 400;
+                line-height: normal;
+                text-transform: capitalize;
+
+                span {
+                  color: #FFF;
+                  font-family: Montserrat-bold;
+                  font-size: 13px;
+                  margin-right: 8px;
+                }
+              }
+            }
+          }
+
+          .victory {
+            margin-top: 20px;
+            display: flex;
+            width: 240px;
+            padding: 12px 16px;
+            align-items: flex-center;
+            box-sizing: border-box;
+            border-radius: 6px;
+            background: #14181E;
+            height: 48px;
+
+            div {
+              color: rgba(255, 255, 255, 0.50);
+              font-family: Montserrat-Regular;
+              font-size: 13px;
+              font-style: normal;
+              font-weight: 400;
+              line-height: normal;
+              text-transform: capitalize;
+              width: 88px;
+              text-align: left;
+
+              span {
+                color: #9DFF85;
+                font-family: Montserrat-Medium;
+                font-size: 20px;
+                margin-right: 4px;
+              }
+            }
+
+            .line {
+              width: 1px;
+              height: 20px;
+              margin: 0 16px;
+              background-color: #292B2F;
+            }
+          }
         }
       }
     }
 
     .r-bd {
-      margin-top: 12px;
-      height: 360px;
-      margin-bottom: 12px;
-      overflow-y: auto;
+      margin-top: 24px;
+      border-radius: 8px;
+      border: 1px solid #292B2F;
+      background: #14171E;
+      box-sizing: border-box;
+
+      .tag {
+        height: 50px;
+        display: flex;
+        align-items: center;
+        padding: 0 24px;
+        box-sizing: border-box;
+        color: rgba(255, 255, 255, 0.80);
+        font-family: Montserrat-Medium;
+        font-size: 15px;
+        font-style: normal;
+        line-height: normal;
+        text-transform: capitalize;
+        background: #1F2128;
+      }
+
+      .tx-w {
+        height: 460px;
+        overflow-y: auto;
+      }
 
       .tx {
-        text-align: left;
-        font-size: 14px;
-        margin-top: 14px;
+        height: 72px;
+        display: flex;
+        align-items: center;
+        padding: 0 24px;
+        box-sizing: border-box;
+        color: #FFF;
+        font-family: Montserrat-Regular;
+        font-size: 15px;
+        font-style: normal;
+        font-weight: 400;
+        line-height: normal;
+        letter-spacing: 0.6px;
+        text-transform: capitalize;
+        border-bottom: 1px solid #292B2F;
 
-        span {
-          margin-left: 4px;
-          color: #1684fc;
-          cursor: pointer;
+        .tx-avatar {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          margin-right: 8px;
         }
+
+        .tx-player {
+          margin-left: 16px;
+          width: 16px;
+          height: 16px;
+        }
+
+        .tx-hash {
+          margin-left: 16px;
+          color: rgba(255, 255, 255, 0.40);
+          font-family: Montserrat-Regular;
+          font-size: 15px;
+          font-style: normal;
+          font-weight: 400;
+          line-height: normal;
+          letter-spacing: 0.6px;
+          text-transform: capitalize;
+
+        }
+      }
+    }
+
+    .confirm-btn {
+      margin-top: 24px;
+      border-radius: 8px;
+      background: #3760D7;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #FFF;
+      font-family: Montserrat-600;
+      font-size: 18px;
+      font-style: normal;
+      font-weight: 600;
+      line-height: normal;
+      letter-spacing: 0.72px;
+      text-transform: capitalize;
+      cursor: pointer;
+
+      &.disabled {
+        background: #2D323B;
+        color: rgba(255, 255, 255, 0.40);
+        cursor: not-allowed;
+      }
+    }
+  }
+}
+
+// 屏幕宽度小于1680
+@media screen and (max-width: 1680px) {
+  .detail {
+    padding-top: 12px;
+    .r {
+      .tx-w {
+        height: 340px !important;
       }
     }
   }

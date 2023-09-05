@@ -1,6 +1,32 @@
 * {
   font-family: Arial, Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
 }
+
+@font-face {
+  font-family: 'Montserrat';
+  src: url(./assets/fonts/Montserrat-ExtraBold.otf);
+}
+
+@font-face {
+  font-family: 'Montserrat-Medium';
+  src: url(./assets/fonts/Montserrat-Medium.otf);
+}
+
+@font-face {
+  font-family: 'Montserrat-Regular';
+  src: url(./assets/fonts/Montserrat-Regular.otf);
+}
+
+@font-face {
+  font-family: 'Montserrat-bold';
+  src: url(./assets/fonts/Montserrat-Bold.otf);
+}
+
+@font-face {
+  font-family: 'Montserrat-600';
+  src: url(./assets/fonts/Montserrat-SemiBold.otf);
+}
+
 .flex-center-center {
   display: flex;
   align-items: center;
@@ -50,4 +76,9 @@
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
+}
+
+/* 样式覆盖 */
+.n-spin-content {
+  height: 100% !important;
 }
