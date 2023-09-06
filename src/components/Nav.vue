@@ -401,6 +401,8 @@ onBeforeMount(async () => {
       .aa-list {
         max-height: 236px;
         overflow-y: auto;
+        padding: 0 6px;
+        box-sizing: border-box;
       }
 
       .aa {
