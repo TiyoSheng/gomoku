@@ -60,7 +60,13 @@ const createAaWallet = async () => {
   if (createLoading.value) return
   aaAddress.value = ''
   createLoading.value = true
-  aaAddress.value = await create_aa_wallet()
+  try {
+    aaAddress.value = await create_aa_wallet()
+  } catch (error) {
+    console.log(error)
+    message.error('创建AA钱包失败')
+    return
+  }
   createLoading.value = false
   setAaAddress(aaAddress.value)
   let aa_list = localStorage.getItem('aa_list') ? JSON.parse(localStorage.getItem('aa_list')) : []
@@ -98,13 +104,11 @@ onBeforeMount(async () => {
         clearInterval(interval)
         balance.value = bal.toString()
         if (!aaAddress.value) {
-          createLoading.value = true
           await createAaWallet()
         }
       }
     }, 10000)
   } else if (balance.value && !aaAddress.value) {
-    createLoading.value = true
     await createAaWallet()
   }
   let signer = web3.getSigner();
