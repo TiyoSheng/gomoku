@@ -13,4 +13,4 @@ Users can easily create AA wallets to save winnings or even easily trade thire a
 
 ![AA Wallet](https://s2.loli.net/2023/09/08/iEsf6tuqvyLNBXF.png)
 
-LootChain Testnet and OpBNB testNet
+Gomoku was deployed on LootChain Testnet and OpBNB Testnet because of its fast block time and ultra low gas cost, which is a perfect match for a fully on-chain game.
