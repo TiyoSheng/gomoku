@@ -1,7 +1,16 @@
-# Vue 3 + Vite
+### Gomoku Protocol is a **fully on-chain game**.
+![gomoku](https://s2.loli.net/2023/09/08/S1ay6bOGZXL4tH8.png) 
 
-This template should help get you started developing with Vue 3 in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+Now deployed, visit [Gomoku3](https://gomoku3.xyz)
 
-## Recommended IDE Setup
+The game logic is written in smart contract and running on blockchain, no need for a single game server anymore
 
-- [VS Code](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur) + [TypeScript Vue Plugin (Volar)](https://marketplace.visualstudio.com/items?itemName=Vue.vscode-typescript-vue-plugin).
+which provide a game composability, like other people can build games (new frontend or add new rules) on top of it.
+
+That’s why we call it “protocol”. 
+
+Users can easily create AA wallets to save winnings or even easily trade thire accounts without private keys(based on ERC6551)
+
+![AA Wallet](https://s2.loli.net/2023/09/08/iEsf6tuqvyLNBXF.png)
+
+LootChain Testnet and OpBNB testNet
