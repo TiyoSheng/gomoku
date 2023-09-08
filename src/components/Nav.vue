@@ -129,6 +129,7 @@ onBeforeMount(async () => {
     <div class="logo" @click="toIndex">Gomoku</div>
     <div class="wallet">
       <div v-if="address && balance && balance == 0" class="flex-center block">
+      <!-- <div class="flex-center block"> -->
         <div class="blance">0.0 BNB</div>
         <div class="line"></div>
         <div class="address flex-center">
@@ -136,6 +137,7 @@ onBeforeMount(async () => {
         </div>
         <img src="../assets/images/arrow.svg" alt="" class="left-icon">
         <div class="hint flex-center"><img src="../assets/images/hint.svg" alt="">gas余额不足请充值</div>
+        <div class="popover">请向此地址充值tBNB,不是Metamask</div>
       </div>
       <div v-if="balance > 0 && !aaAddress">
         <div class="create-btn" @click="createAaWallet" :style="{ cursor: createLoading ? 'not-allowed' : 'pointer' }">
@@ -145,6 +147,7 @@ onBeforeMount(async () => {
         </div>
       </div>
       <div class="flex-center block" v-if="balance > 0 && aaAddress">
+      <!-- <div class="flex-center block" v-if="false"> -->
         <div class="blance">{{ formatBalance(balance) }} BNB</div>
         <div class="line"></div>
         <div class="address flex-center">
@@ -324,6 +327,35 @@ onBeforeMount(async () => {
         width: 14px;
         height: 14px;
         margin-right: 6px;
+      }
+    }
+
+    .popover {
+      position: absolute;
+      top: 60px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 12px 16px;
+      box-sizing: border-box;
+      border-radius: 10px;
+      background: linear-gradient(95deg, #FFF0C0 -19.65%, #FED863 132.44%);
+      color: #121318;
+      font-family: Montserrat-Medium;
+      font-size: 13px;
+      font-style: normal;
+      line-height: normal;
+      letter-spacing: 0.26px;
+      text-transform: capitalize;
+      &::before{
+        content: "";
+        width: 0px;
+        height: 0px;
+        border-left: 8px solid transparent;
+        border-right: 8px solid transparent;
+        border-bottom: 8px solid #FFF0C0;
+        position: absolute;
+        top: -8px;
+        left: 65px;
       }
     }
 
