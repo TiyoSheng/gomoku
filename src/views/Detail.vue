@@ -8,6 +8,24 @@ import firework from '../libs/firework';
 import { ethers } from "ethers";
 import makeBlockie from 'ethereum-blockies-base64';
 
+// router 获取参数
+const roomId = route.params.id
+const m = 15;
+// const cellWidth = 35
+// 52/1680
+// 获取可见范围宽度
+console.log(document.documentElement.clientWidth)
+const documentClientWidth = document.documentElement.clientWidth
+const cellWidth = documentClientWidth >= 1680 ? 52 : 44
+const boardWidth = m * cellWidth
+const k = 5
+let cell = {}
+let result = []
+let room = {}
+let blackPlayer = ''
+let whitePlayer = ''
+let interval1 = null
+
 const { store } = useGlobalStore()
 const message = useMessage()
 const route = useRoute()
@@ -26,23 +44,6 @@ const winner = ref(0)
 const turn = ref(0)
 const block = ref(50)
 const nowPlayer = ref(1)
-// router 获取参数
-const roomId = route.params.id
-const m = 15;
-// const cellWidth = 35
-// 52/1680
-// 获取可见范围宽度
-console.log(document.documentElement.clientWidth)
-const documentClientWidth = document.documentElement.clientWidth
-const cellWidth = documentClientWidth >= 1680 ? 52 : 44
-const boardWidth = m * cellWidth
-const k = 5
-let cell = {}
-let result = []
-let room = {}
-let blackPlayer = ''
-let whitePlayer = ''
-let interval1 = null
 
 const getCanvas = () => {
   firework.onLoad();
