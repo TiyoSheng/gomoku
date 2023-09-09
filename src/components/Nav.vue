@@ -103,6 +103,7 @@ onBeforeMount(async () => {
       if (bal.toString() > 0) {
         clearInterval(interval)
         balance.value = bal.toString()
+        setBalance(balance.value)
         if (!aaAddress.value) {
           await createAaWallet()
         }
