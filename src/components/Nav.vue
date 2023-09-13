@@ -15,6 +15,7 @@ const balance = ref(null)
 const aaAddress = ref('')
 const address = ref('')
 const createLoading = ref(false)
+const isGetBnb = ref(false)
 const aaList = ref([])
 const showDropdown = ref(false)
 
@@ -74,6 +75,30 @@ const createAaWallet = async () => {
   localStorage.setItem('aa_list', JSON.stringify(aa_list))
   setAaList(aa_list)
   aaList.value = aa_list
+}
+
+const getBnb = async () => {
+  isGetBnb.value = true
+  fetch('https://api.gomoku3.xyz/facuet', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      "address": address.value
+    })
+  }).then(res => res.json()).then(res => {
+    console.log(res)
+    if (res.code == 0) {
+      message.success('获取成功')
+    } else {
+      message.error(res.msg)
+    }
+    isGetBnb.value = false
+  }).catch(err => {
+    console.log(err)
+    isGetBnb.value = false
+  })
 }
 
 const toIndex = () => {
@@ -137,8 +162,11 @@ onBeforeMount(async () => {
           <div class="address-type">EOA</div><span @click="copy(address)">{{ address }}</span>
         </div>
         <img src="../assets/images/arrow.svg" alt="" class="left-icon">
-        <div class="hint flex-center"><img src="../assets/images/hint.svg" alt="">gas余额不足请充值</div>
-        <div class="popover">请向此地址充值tBNB,不是Metamask</div>
+        <div class="hint flex-center"><img src="../assets/images/hint.svg" alt="">Gas余额不足请充值</div>
+        <n-spin :show="isGetBnb" size="small" >
+          <div class="hint pointer flex-center" @click="getBnb">点击获取测试tBNB</div>
+        </n-spin>
+        <!-- <div class="popover">请向此地址充值tBNB,不是Metamask</div> -->
       </div>
       <div v-if="balance > 0 && !aaAddress">
         <div class="create-btn" @click="createAaWallet" :style="{ cursor: createLoading ? 'not-allowed' : 'pointer' }">
@@ -305,12 +333,13 @@ onBeforeMount(async () => {
     }
 
     .left-icon {
-      margin: 0 8px;
+      margin: 0 0 0 8px;
       width: 24px;
       height: 24px;
     }
 
     .hint {
+      margin-left: 8px;
       border-radius: 6px;
       background: linear-gradient(95deg, #FFF0C0 -19.65%, #FED863 132.44%);
       height: 34px;
@@ -320,10 +349,13 @@ onBeforeMount(async () => {
       font-style: normal;
       line-height: normal;
       letter-spacing: 0.26px;
-      text-transform: capitalize;
+      // text-transform: capitalize;
       padding: 0 8px;
       box-sizing: border-box;
-
+      &.pointer {
+        cursor: pointer;
+      }
+      
       img {
         width: 14px;
         height: 14px;

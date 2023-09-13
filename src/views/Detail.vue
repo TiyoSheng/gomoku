@@ -8,8 +8,6 @@ import firework from '../libs/firework';
 import { ethers } from "ethers";
 import makeBlockie from 'ethereum-blockies-base64';
 
-// router 获取参数
-const roomId = route.params.id
 const m = 15;
 // const cellWidth = 35
 // 52/1680
@@ -22,8 +20,6 @@ const k = 5
 let cell = {}
 let result = []
 let room = {}
-let blackPlayer = ''
-let whitePlayer = ''
 let interval1 = null
 
 const { store } = useGlobalStore()
@@ -39,11 +35,16 @@ const loading = ref(false)
 const playerType = ref(0)
 const blackPlayerInfo = ref({})
 const whitePlayerInfo = ref({})
+const blackPlayer = ref('')
+const whitePlayer = ref('')
 const txList = ref([])
 const winner = ref(0)
 const turn = ref(0)
 const block = ref(50)
 const nowPlayer = ref(1)
+
+const roomId = route.params.id
+
 
 const getCanvas = () => {
   firework.onLoad();
@@ -76,23 +77,23 @@ const getRoom = async () => {
   let contract = toRaw(store.state.contract)
   const res = await contract.rooms(roomId)
   room = res
-  blackPlayer = room.blackPlayer
-  whitePlayer = room.whitePlayer
-  if (blackPlayer == store.state.aaAddress) {
+  blackPlayer.value = room.blackPlayer
+  whitePlayer.value = room.whitePlayer
+  if (blackPlayer.value == store.state.aaAddress) {
     playerType.value = 1
-  } else if (whitePlayer == store.state.aaAddress) {
+  } else if (whitePlayer.value == store.state.aaAddress) {
     playerType.value = 2
   }
   if (room.gameState == 2) {
     isOver.value = true
-    if (room.winner.toLocaleLowerCase() == blackPlayer.toLocaleLowerCase()) {
+    if (room.winner.toLocaleLowerCase() == blackPlayer.value.toLocaleLowerCase()) {
       winner.value = 1
-    } else if (room.winner.toLocaleLowerCase() == whitePlayer.toLocaleLowerCase()) {
+    } else if (room.winner.toLocaleLowerCase() == whitePlayer.value.toLocaleLowerCase()) {
       winner.value = 2
     }
   }
-  blackPlayerInfo.value = await contract.players(blackPlayer)
-  whitePlayerInfo.value = await contract.players(whitePlayer)
+  blackPlayerInfo.value = await contract.players(blackPlayer.value)
+  whitePlayerInfo.value = await contract.players(whitePlayer.value)
   checkBlock(room)
 }
 
@@ -417,9 +418,9 @@ watch(() => store.state.contract, async (contract) => {
       console.log(id, win)
       if (id.toString() == roomId) {
         isOver.value = true
-        if (win.toLocaleLowerCase() == blackPlayer.toLocaleLowerCase()) {
+        if (win.toLocaleLowerCase() == blackPlayer.value.toLocaleLowerCase()) {
           winner.value = 1
-        } else if (win.toLocaleLowerCase() == whitePlayer.toLocaleLowerCase()) {
+        } else if (win.toLocaleLowerCase() == whitePlayer.value.toLocaleLowerCase()) {
           winner.value = 2
         }
       }
