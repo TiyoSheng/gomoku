@@ -3,13 +3,12 @@ import { ref, onBeforeMount, toRaw, watch, onBeforeUnmount } from 'vue'
 import { ethers } from "ethers";
 import { init_wallet, create_aa_wallet } from '../libs/inject'
 import { useMessage } from 'naive-ui'
-import makeBlockie from 'ethereum-blockies-base64';
 import { useGlobalStore } from '../hooks/globalStore'
-import { contractAbi, contractAddress } from '../config/config'
+import { contractAbi, contractAddress, nftAddress, nftAbi } from '../config/config'
 
 let interval = null
 
-const { setAddress, setAaAddress, setContract, setAaList, setBalance } = useGlobalStore()
+const { store, setAddress, setAaAddress, setContract, setAaList, setBalance, setNftContract } = useGlobalStore()
 const message = useMessage()
 const balance = ref(null)
 const aaAddress = ref('')
@@ -17,7 +16,11 @@ const address = ref('')
 const createLoading = ref(false)
 const isGetBnb = ref(false)
 const aaList = ref([])
+const aaRemark = ref({})
 const showDropdown = ref(false)
+const editAA = ref('')
+const remark = ref('')
+const editAddress = ref('')
 
 onBeforeUnmount(() => {
   interval && clearInterval(interval)
@@ -32,6 +35,55 @@ const formatBalance = (balance) => {
   // 保留4位小数
   balance = Number(balance).toFixed(4)
   return balance
+}
+
+const bindRemark = () => {
+  if (!remark.value) {
+    message.error('请输入备注')
+    return
+  }
+  let aa_remark = localStorage.getItem('aa_remark') ? JSON.parse(localStorage.getItem('aa_remark')) : {}
+  aa_remark[editAA.value] = remark.value
+  localStorage.setItem('aa_remark', JSON.stringify(aa_remark))
+  aaRemark.value = aa_remark
+  closeModal()
+}
+
+const bindTransfer = async () => {
+  if (!editAddress.value || editAddress.value.length != 42) {
+    message.error('请输入正确的地址')
+    return
+  }
+  if (!store.state.nftContract) {
+    message.error('请先连接钱包')
+    return
+  }
+  try {
+    console.log(toRaw(store.state.nftContract))
+    let tx = toRaw(store.state.nftContract).transferFrom(address.value, editAddress.value, editAA.value)
+    let receipt = await tx.wait()
+    console.log(receipt)
+    message.success('转让成功')
+    let aa_list = localStorage.getItem('aa_list') ? JSON.parse(localStorage.getItem('aa_list')) : []
+    let index = aa_list.findIndex(item => item == editAA.value)
+    aa_list.splice(index, 1)
+    localStorage.setItem('aa_list', JSON.stringify(aa_list))
+    if (aaAddress.value == editAA.value) {
+      aaAddress.value = aaList.value[0]
+      localStorage.setItem('aa_address', aaAddress.value)
+    }
+    closeModal()
+  } catch (error) {
+    console.log(error)
+    message.error('转让失败')
+  }
+  
+}
+
+const closeModal = () => {
+  editAA.value = ''
+  remark.value = ''
+  editAddress.value = ''
 }
 
 const changeAA = (item) => {
@@ -116,6 +168,7 @@ onBeforeMount(async () => {
   let bal = await web3.getBalance(accounts[0]);
   aaAddress.value = localStorage.getItem('aa_address') || ''
   aaList.value = localStorage.getItem('aa_list') ? JSON.parse(localStorage.getItem('aa_list')) : []
+  aaRemark.value = localStorage.getItem('aa_remark') ? JSON.parse(localStorage.getItem('aa_remark')) : {}
   if (aaAddress.value && !aaList.value.includes(aaAddress.value)) {
     aaList.value.push(aaAddress.value)
     localStorage.setItem('aa_list', JSON.stringify(aaList.value))
@@ -139,13 +192,21 @@ onBeforeMount(async () => {
   }
   let signer = web3.getSigner();
   let contract = new ethers.Contract(contractAddress, contractAbi, signer);
+  let nftContract = new ethers.Contract(nftAddress, nftAbi, signer);
   setContract(toRaw(contract))
+  setNftContract(toRaw(nftContract))
   setAddress(address.value)
   setAaAddress(aaAddress.value)
   // wallet.value = await init_wallet()
   // if (!wallet.value) {
   //   wallet.value = await create_aa_wallet()
   // }
+})
+
+watch(() => editAA.value, (val) => {
+  if (val) {
+    remark.value = aaRemark.value[val] || ''
+  }
 })
 
 </script>
@@ -180,7 +241,7 @@ onBeforeMount(async () => {
         <div class="blance">{{ formatBalance(balance) }} BNB</div>
         <div class="line"></div>
         <div class="address flex-center">
-          <div class="address-type">AA</div><span @click="copy(aaAddress)">{{ formatAddress(aaAddress) }}</span>
+          <div class="address-type">AA</div><span v-if="aaRemark[aaAddress]">{{ aaRemark[aaAddress] }}</span><span @click="copy(aaAddress)">{{ formatAddress(aaAddress) }}</span>
           <svg @click="() => showDropdown = !showDropdown"
             :style="{ transform: showDropdown ? 'rotate(180deg)' : 'rotate(0deg)' }" class="arrow"
             xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none">
@@ -212,9 +273,9 @@ onBeforeMount(async () => {
             <div class="aa-list">
               <div v-for="item in aaList" :key="item" class="address aa flex-center-sb" @click="changeAA(item)">
                 <div class="flex-center">
-                  <div class="address-type">AA</div><span>{{ formatAddress(item) }}</span>
-                  <svg v-if="false" class="edit-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18"
-                    viewBox="0 0 18 18" fill="none">
+                  <div class="address-type">AA</div><span v-if="aaRemark[item]">{{ aaRemark[item] }}</span><span>{{ formatAddress(item) }}</span>
+                  <svg class="edit-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18"
+                    viewBox="0 0 18 18" fill="none" @click.stop="() => editAA = item">
                     <path d="M3 15H15" stroke="#858D99" stroke-width="1.35" stroke-linecap="round"
                       stroke-linejoin="round" />
                     <path
@@ -243,7 +304,32 @@ onBeforeMount(async () => {
             </div>
           </div>
         </div>
-
+      </div>
+    </div>
+    <div v-if="editAA" class="edit-modal" @click="closeModal">
+      <div class="modal-content" @click.stop>
+        <img src="../assets/images/close.svg" alt="" class="close" @click="closeModal">
+        <div class="hd flex-center">
+          <div class="title">Set Up</div>
+          <div class="type flex-center-center">AA</div>
+          <div class="address">{{ formatAddress(editAA) }}</div>
+        </div>
+        <div class="bd">
+          <div class="item">
+            <div class="item-title">Remarks</div>
+            <div class="item-input flex-center">
+              <input type="text" placeholder="Enter a comment name" v-model="remark" />
+              <div :class="['item-btn', 'flex-center-center',remark ? 'item-btn-activate' : '']" @click="bindRemark">Save</div>
+            </div>
+          </div>
+          <!-- <div class="item">
+            <div class="item-title">Transfer</div>
+            <div class="item-input flex-center">
+              <input type="text" placeholder="Enter a different EOA address" v-model="editAddress" />
+              <div :class="['item-btn', 'flex-center-center',editAddress && editAddress.length == 42 ? 'item-btn-activate' : '']" @click="bindTransfer">confirm</div>
+            </div>
+          </div> -->
+        </div>
       </div>
     </div>
   </div>
@@ -324,11 +410,11 @@ onBeforeMount(async () => {
         font-size: 13px;
         letter-spacing: 0.26px;
         text-transform: capitalize;
-        margin-right: 6px;
       }
 
       span {
         cursor: pointer;
+        margin-left: 6px;
       }
     }
 
@@ -480,11 +566,15 @@ onBeforeMount(async () => {
         &:hover {
           border-radius: 6px;
           background: #2D323B;
+          .edit-icon {
+            display: block;
+          }
         }
 
         .edit-icon {
           margin-left: 6px;
           cursor: pointer;
+          display: none;
 
           &:hover {
             path {
@@ -516,6 +606,132 @@ onBeforeMount(async () => {
 
           svg {
             margin-right: 6px;
+          }
+        }
+      }
+    }
+  }
+}
+.edit-modal {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  backdrop-filter: blur(2px);
+  background: rgba(0, 0, 0, 0.1);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  .modal-content {
+    width: 480px;
+    // height: 259px;
+    border-radius: 10px;
+    background: #121318;
+    padding: 20px;
+    box-sizing: border-box;
+    position: relative;
+    .close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 16px;
+      height: auto;
+      cursor: pointer;
+    }
+    .hd {
+      .title {
+        color: #FFF;
+        font-size: 20px;
+        font-style: normal;
+        font-weight: 600;
+        line-height: normal;
+        text-transform: capitalize;
+      }
+      .type {
+        margin-left: 16px;
+        width: 32px;
+        height: 24px;
+        border-radius: 4px;
+        background: rgba(254, 216, 99, 0.12);
+        color: #FED863;
+        font-family: Montserrat-Medium;
+        font-size: 13px;
+        font-style: normal;
+        line-height: normal;
+        letter-spacing: 0.26px;
+        text-transform: capitalize;
+      }
+      .address {
+        margin-left: 6px;
+        color: #FFF;
+        font-family: Montserrat-Medium;
+        font-size: 14px;
+        font-style: normal;
+        line-height: 18px; /* 128.571% */
+      }
+    }
+    .bd {
+      .item {
+        margin-top: 24px;
+        .item-title {
+          color: var(--ffffff, #FFF);
+          font-family: Montserrat-Regular;
+          font-size: 14px;
+          font-style: normal;
+          line-height: normal;
+          text-transform: capitalize;
+        }
+        .item-input {
+          margin-top: 12px;
+          input {
+            padding: 0 18px;
+            box-sizing: border-box;
+            height: 40px;
+            flex: 1;
+            margin-right: 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(133, 141, 153, 0.15);
+            background: #0A0A0C;
+            color: #FFF;
+            font-family: Montserrat-Regular;
+            font-size: 14px;
+            font-style: normal;
+            font-weight: 400;
+            line-height: 20px; /* 142.857% */
+            outline: none;
+
+            &::placeholder {
+              color: #858D99;
+              font-family: Montserrat-Regular;
+              font-size: 14px;
+              font-style: normal;
+              font-weight: 400;
+              line-height: 20px; /* 142.857% */
+              text-transform: capitalize;
+            }
+          }
+          .item-btn {
+            border-radius: 8px;
+            border: 1px solid rgba(133, 141, 153, 0.15);
+            background: #1A1B1D;
+            flex: 0 0 82px;
+            height: 40px;
+            color: #858D99;
+            font-family: Montserrat-Regular;
+            font-size: 14px;
+            font-style: normal;
+            font-weight: 400;
+            line-height: 20px; /* 142.857% */
+            text-transform: capitalize;
+            cursor: pointer;
+            &-activate {
+              border-radius: 8px;
+              border: 1px solid rgba(133, 141, 153, 0.15);
+              background: #3760D7;
+              color: #FFF;
+            }
           }
         }
       }

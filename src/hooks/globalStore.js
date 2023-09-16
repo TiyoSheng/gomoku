@@ -6,6 +6,7 @@ const store = reactive({
     wallet: null,
     aaAddress: null,
     address: null,
+    nftContract: null,
     aaList: [],
     balance: 0
   },
@@ -35,6 +36,10 @@ const setBalance = async (balance) => {
   store.state.balance = balance
 };
 
+const setNftContract = async (nftContract) => {
+  store.state.nftContract = nftContract
+};
+
 export const useGlobalStore = () => ({
   store,
   setBalance,
@@ -42,5 +47,6 @@ export const useGlobalStore = () => ({
   setAaAddress,
   setContract,
   setWallet,
-  setAaList
+  setAaList,
+  setNftContract
 });
