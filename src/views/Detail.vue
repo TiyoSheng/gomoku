@@ -42,6 +42,10 @@ const winner = ref(0)
 const turn = ref(0)
 const block = ref(50)
 const nowPlayer = ref(1)
+const start = ref(null)
+const step = ref(null)
+const winAudio = ref(null)
+const stepIndex = ref({})
 
 const roomId = route.params.id
 
@@ -91,10 +95,15 @@ const getRoom = async () => {
     } else if (room.winner.toLocaleLowerCase() == whitePlayer.value.toLocaleLowerCase()) {
       winner.value = 2
     }
+    if (winner.value == playerType.value) {
+      winAudio.value.play()
+    }
+  } else {
+    start.value.play()
+    checkBlock(room)
   }
   blackPlayerInfo.value = await contract.players(blackPlayer.value)
   whitePlayerInfo.value = await contract.players(whitePlayer.value)
-  checkBlock(room)
 }
 
 const checkBlock = async (room) => {
@@ -199,6 +208,8 @@ const isItemClicked = (column, row) => {
       player: player,
     };
     console.log(cell)
+    step.value.play()
+    stepIndex.value = { column: column, row: row }
   }
 };
 
@@ -384,6 +395,7 @@ watch(() => store.state.contract, async (contract) => {
       if (player != playerType.value && id.toString() == roomId) {
         txList.value.push({ player: player, x: column, y: row })
         await getBoard()
+        step.value.play()
         cell = {
           column: Number(column),
           row: Number(row),
@@ -400,7 +412,7 @@ watch(() => store.state.contract, async (contract) => {
           }
         } else {
           block.value = 50
-        checkBlock()
+          checkBlock()
         }
         cell = {};
       }
@@ -413,6 +425,7 @@ watch(() => store.state.contract, async (contract) => {
       } else if (player == 2) {
         nowPlayer.value = 1
       }
+      stepIndex.value = { column: Number(column), row: Number(row) }
     })
     toRaw(contract).on('GameEnded', (id, win) => {
       console.log(id, win)
@@ -422,6 +435,9 @@ watch(() => store.state.contract, async (contract) => {
           winner.value = 1
         } else if (win.toLocaleLowerCase() == whitePlayer.value.toLocaleLowerCase()) {
           winner.value = 2
+        }
+        if (winner.value == playerType.value) {
+          winAudio.value.play()
         }
       }
     })
@@ -440,8 +456,8 @@ watch(() => isOver.value, (isOver) => {
 
 <template>
   <div class="detail flex-start">
-      <div class="l">
-        <n-spin size="large" :show="loading" style="min-height: 400px;">
+    <div class="l">
+      <n-spin size="large" :show="loading" style="min-height: 400px;">
         <div class="w">
           <canvas class="pan" ref="pan"></canvas>
           <canvas v-if="isOver && winner == playerType" id="canvas" class="firework"></canvas>
@@ -451,7 +467,9 @@ watch(() => isOver.value, (isOver) => {
                 :class="['item', ((map[columnIndex] && map[columnIndex][rowIndex] == 1) || (tempMap[columnIndex] && tempMap[columnIndex][rowIndex] == 1)) ? 'player-1' : ((map[columnIndex] && map[columnIndex][rowIndex] == 2) || (tempMap[columnIndex] && tempMap[columnIndex][rowIndex] == 2)) ? 'player-2' : '']"
                 :style="{ width: cellWidth + 'px', height: cellWidth + 'px' }"
                 @click="isItemClicked(columnIndex, rowIndex)">
-                <div class="after" :style="{ width: (cellWidth - 2) + 'px', height: (cellWidth - 2) + 'px' }"></div>
+                <div class="after" :style="{ width: (cellWidth - 2) + 'px', height: (cellWidth - 2) + 'px' }">
+                  <svg v-if="stepIndex.column == columnIndex && stepIndex.row == rowIndex" t="1694866725171" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4024" width="24" height="24"><path d="M804.43 413.285l-258.228 98.715 258.14 98.715c65.75 25.363 103.75 45.601 113.914 60.801 10.074 15.201 15.201 30.401 15.201 45.601 0 40.563-7.687 63.364-23.067 68.314-15.289 5.125-30.667 7.599-45.955 7.599-15.466 0-30.754-3.801-46.043-11.399-15.377-7.599-33.228-18.999-53.644-34.201l-237.461-212.628 53.731 318.941c5.037 15.201 7.599 29.164 7.599 41.801 0 12.725 0 21.562 0 26.601 0 30.401-7.599 51.964-22.976 64.513-15.377 12.725-33.228 18.999-53.644 18.999-15.643 0-32.522-5.037-50.814-15.201-18.293-10.074-27.307-32.875-27.307-68.314 0-10.074 1.326-20.238 3.889-30.401 2.652-10.074 3.889-22.8 3.889-38.001l62.391-318.941-241.968 212.628c-15.643 10.162-32.522 20.238-50.814 30.401s-35.085 15.201-50.639 15.201c-15.643 0-31.197-5.037-46.837-15.201-15.643-10.074-23.419-30.401-23.419-60.801 0-20.238 7.599-38.001 22.8-53.201s50.55-32.875 106.314-53.201l258.405-98.626-258.228-98.715c-35.438-15.201-65.84-29.075-91.114-41.801-25.363-12.637-38.001-34.201-38.001-64.513 0-25.275 7.599-44.275 22.889-57.001 15.377-12.548 30.578-18.999 46.043-18.999 15.289 0 31.902 3.801 49.842 11.399 17.764 7.599 34.377 18.999 49.842 34.201l237.549 212.628-53.644-318.941c0-15.201-1.326-27.749-3.889-38.001-2.652-10.074-3.801-20.238-3.801-30.401 0-20.238 7.599-39.15 22.976-57.001 15.377-17.586 33.317-26.511 53.644-26.511 31.283 0 51.877 10.162 62.481 30.401 10.339 20.238 15.643 38.001 15.643 53.201 0 10.162 0 21.562 0 34.201 0 12.725-2.652 24.037-7.866 34.201l-62.391 318.852 241.879-212.628c20.769-20.238 38.883-32.875 54.615-38.001 15.643-5.037 31.197-7.599 46.837-7.599 20.769 0 37.648 7.599 50.639 22.8s19.708 32.963 19.708 53.201c0 20.238-5.125 36.763-15.201 49.402-10.252 12.637-48.163 31.637-113.914 56.913z" p-id="4025" fill="#ffffff"></path></svg>
+                </div>
               </div>
             </div>
           </div>
@@ -466,7 +484,7 @@ watch(() => isOver.value, (isOver) => {
           </div>
         </div>
       </n-spin>
-      </div>
+    </div>
     <div class="r">
       <div class="r-hd">
         <div class="players">
@@ -483,8 +501,11 @@ watch(() => isOver.value, (isOver) => {
                   <img src="../assets/images/player_w.svg" alt="" class="player">
                 </div>
                 <div class="info">
-                  <div v-if="!winner" class="down-time"><span :style="{color: nowPlayer == 2 ? '#FED863' : 'rgba(255, 255, 255, 0.20)'}">{{ nowPlayer == 2 ? block : '00' }}</span>Blocks</div>
-                  <div v-else class="result" :style="{color: winner == 2 ? '#9DFF85' : '#FF6161'}">{{ winner == 2 ? 'Win' : 'Loss' }}</div>
+                  <div v-if="!winner" class="down-time"><span
+                      :style="{ color: nowPlayer == 2 ? '#FED863' : 'rgba(255, 255, 255, 0.20)' }">{{ nowPlayer == 2 ? block
+                        : '00' }}</span>Blocks</div>
+                  <div v-else class="result" :style="{ color: winner == 2 ? '#9DFF85' : '#FF6161' }">{{ winner == 2 ? 'Win'
+                    : 'Loss' }}</div>
                   <div class="addr"><span>white</span>{{ formatAddress(whitePlayer) }}</div>
                 </div>
               </div>
@@ -504,8 +525,11 @@ watch(() => isOver.value, (isOver) => {
             <div class="user-info">
               <div class="flex-center">
                 <div class="info">
-                  <div v-if="!winner" class="down-time"><span :style="{color: nowPlayer == 1 ? '#FED863' : 'rgba(255, 255, 255, 0.20)'}">{{ nowPlayer == 1 && block > 0 ? block : '00' }}</span>Blocks</div>
-                  <div v-else class="result" :style="{color: winner == 1 ? '#9DFF85' : '#FF6161'}">{{ winner == 1 ? 'Win' : 'Loss' }}</div>
+                  <div v-if="!winner" class="down-time"><span
+                      :style="{ color: nowPlayer == 1 ? '#FED863' : 'rgba(255, 255, 255, 0.20)' }">{{ nowPlayer == 1 &&
+                        block > 0 ? block : '00' }}</span>Blocks</div>
+                  <div v-else class="result" :style="{ color: winner == 1 ? '#9DFF85' : '#FF6161' }">{{ winner == 1 ? 'Win'
+                    : 'Loss' }}</div>
                   <div class="addr"><span>Black</span>{{ formatAddress(blackPlayer) }}</div>
                 </div>
                 <div :class="['avatar', winner == 1 ? 'winner' : '']">
@@ -543,6 +567,15 @@ watch(() => isOver.value, (isOver) => {
         :class="['confirm-btn', (playerType == 1 && turn % 2 != 0) || (playerType == 2 && turn % 2 == 0) ? 'disabled' : '']">
         Confirm Place</div>
     </div>
+    <audio class="audio" ref="start">
+      <source src="../assets/media/start.mp3" type="audio/mp3" />
+    </audio>
+    <audio class="audio" ref="step">
+      <source src="../assets/media/step.mp3" type="audio/mp3" />
+    </audio>
+    <audio class="audio" ref="winAudio">
+      <source src="../assets/media/win.mp3" type="audio/mp3" />
+    </audio>
   </div>
 </template>
 
@@ -615,7 +648,6 @@ watch(() => isOver.value, (isOver) => {
 
         &.player-1 .after,
         &.player-2 .after {
-
           position: absolute;
           top: 50%;
           left: 50%;
@@ -625,14 +657,34 @@ watch(() => isOver.value, (isOver) => {
           height: 33px;
           border-radius: 50%;
           box-shadow: 0 -3px 6px rgba(0, 0, 0, 0.16), 0 -3px 6px rgba(0, 0, 0, 0.23);
+          svg {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            margin-right: -50%;
+            transform: translate(-50%, -50%);
+            width: 24px;
+            height: 24px;
+          }
         }
 
         &.player-1 .after {
           background-image: linear-gradient(315deg, #000 0%, #444 74%);
+          svg {
+            path {
+              fill: rgba(255, 255, 255, 0.70);
+            }
+            
+          }
         }
 
         &.player-2 .after {
           background-image: linear-gradient(315deg, #999 0%, #fff 74%);
+          svg {
+            path {
+              fill: rgba(0, 0, 0, 0.70);
+            }
+          }
         }
       }
     }
@@ -688,6 +740,7 @@ watch(() => isOver.value, (isOver) => {
 
           &.w {
             left: 0;
+
             .your {
               border-radius: 0px 8px;
               background: rgba(254, 216, 99, 0.20);
@@ -710,6 +763,7 @@ watch(() => isOver.value, (isOver) => {
 
           &.b {
             right: 0;
+
             .your {
               border-radius: 0px 8px;
               background: rgba(254, 216, 99, 0.20);
@@ -768,6 +822,7 @@ watch(() => isOver.value, (isOver) => {
               justify-content: center;
               border-radius: 24px;
               box-sizing: border-box;
+
               &.winner {
                 border-radius: 50%;
                 border: 2px solid #FED863;
@@ -992,11 +1047,11 @@ watch(() => isOver.value, (isOver) => {
 @media screen and (max-width: 1680px) {
   .detail {
     padding-top: 12px;
+
     .r {
       .tx-w {
         height: 340px !important;
       }
     }
   }
-}
-</style>
+}</style>
