@@ -137,7 +137,7 @@ const checkBlock = async (room) => {
 }
 
 const toScan = (hash) => {
-  window.open(`https://opbnbscan.com/tx/${hash}`)
+  window.open(`https://goerli.arbiscan.io/tx/${hash}`)
 }
 
 const formatAddress = (address) => {
