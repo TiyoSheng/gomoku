@@ -18,6 +18,7 @@ const isGetBnb = ref(false)
 const aaList = ref([])
 const aaRemark = ref({})
 const showDropdown = ref(false)
+const editLoading = ref(false)
 const editAA = ref('')
 const remark = ref('')
 const editAddress = ref('')
@@ -59,25 +60,36 @@ const bindTransfer = async () => {
     return
   }
   try {
+    editLoading.value = true
     console.log(toRaw(store.state.nftContract))
-    let tx = toRaw(store.state.nftContract).transferFrom(address.value, editAddress.value, editAA.value)
-    let receipt = await tx.wait()
-    console.log(receipt)
-    message.success('转让成功')
     let aa_list = localStorage.getItem('aa_list') ? JSON.parse(localStorage.getItem('aa_list')) : []
-    let index = aa_list.findIndex(item => item == editAA.value)
-    aa_list.splice(index, 1)
-    localStorage.setItem('aa_list', JSON.stringify(aa_list))
-    if (aaAddress.value == editAA.value) {
-      aaAddress.value = aaList.value[0]
-      localStorage.setItem('aa_address', aaAddress.value)
+    let index = aa_list.findIndex(item => item.address == editAA.value)
+    let tokenId = aa_list[index].id
+    try {
+      let tx = await toRaw(store.state.nftContract).transferFrom(address.value, editAddress.value, tokenId)
+      let receipt = await tx.wait()
+      console.log(receipt)
+      message.success('转让成功')
+      aa_list.splice(index, 1)
+      localStorage.setItem('aa_list', JSON.stringify(aa_list))
+      aaList.value = aa_list.map(e => e.address)
+      if (aaAddress.value == editAA.value) {
+        aaAddress.value = aaList.value[0] || ''
+        localStorage.setItem('aa_address', aaAddress.value)
+        setAaAddress(aaAddress.value)
+      }
+    } catch (error) {
+      console.log(error)
+      message.error('转让失败')
     }
+    editLoading.value = false
     closeModal()
   } catch (error) {
     console.log(error)
+    editLoading.value = false
     message.error('转让失败')
   }
-  
+
 }
 
 const closeModal = () => {
@@ -113,8 +125,10 @@ const createAaWallet = async () => {
   if (createLoading.value) return
   aaAddress.value = ''
   createLoading.value = true
+  let obj = {}
   try {
-    aaAddress.value = await create_aa_wallet()
+    obj = await create_aa_wallet()
+    aaAddress.value = obj?.address
   } catch (error) {
     console.log(error)
     message.error('创建AA钱包失败')
@@ -123,10 +137,10 @@ const createAaWallet = async () => {
   createLoading.value = false
   setAaAddress(aaAddress.value)
   let aa_list = localStorage.getItem('aa_list') ? JSON.parse(localStorage.getItem('aa_list')) : []
-  aa_list.push(aaAddress.value)
+  aa_list.push(obj)
   localStorage.setItem('aa_list', JSON.stringify(aa_list))
   setAaList(aa_list)
-  aaList.value = aa_list
+  aaList.value = aa_list.map(e => e.address)
 }
 
 const getBnb = async () => {
@@ -137,7 +151,8 @@ const getBnb = async () => {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      "address": address.value
+      "address": address.value,
+      "chain": 'arb_goerli'
     })
   }).then(res => res.json()).then(res => {
     console.log(res)
@@ -159,7 +174,6 @@ const toIndex = () => {
 
 onBeforeMount(async () => {
   await init_wallet()
-  console.log(window.ethereum)
   let web3 = new ethers.providers.Web3Provider(window.ethereum);
   // 获取钱包地址
   let accounts = await web3.listAccounts();
@@ -167,12 +181,6 @@ onBeforeMount(async () => {
   // 获取钱包余额
   let bal = await web3.getBalance(accounts[0]);
   aaAddress.value = localStorage.getItem('aa_address') || ''
-  aaList.value = localStorage.getItem('aa_list') ? JSON.parse(localStorage.getItem('aa_list')) : []
-  aaRemark.value = localStorage.getItem('aa_remark') ? JSON.parse(localStorage.getItem('aa_remark')) : {}
-  if (aaAddress.value && !aaList.value.includes(aaAddress.value)) {
-    aaList.value.push(aaAddress.value)
-    localStorage.setItem('aa_list', JSON.stringify(aaList.value))
-  }
   balance.value = bal.toString()
   setBalance(balance.value)
   if (balance.value == 0) {
@@ -197,6 +205,30 @@ onBeforeMount(async () => {
   setNftContract(toRaw(nftContract))
   setAddress(address.value)
   setAaAddress(aaAddress.value)
+
+  const FactoryABI = [{"inputs":[{"internalType":"contract IEntryPoint","name":"_entryPoint","type":"address"},{"internalType":"address","name":"_GamerCardAddress","type":"address"}],"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"account","type":"address"},{"indexed":true,"internalType":"address","name":"owner","type":"address"},{"indexed":true,"internalType":"uint256","name":"ownerId","type":"uint256"}],"name":"AccountCreated","type":"event"},{"inputs":[],"name":"GamerCardAddress","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"accountCardId","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"accountImplementation","outputs":[{"internalType":"contract SimpleAccount","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"uint256","name":"salt","type":"uint256"}],"name":"createAccount","outputs":[{"internalType":"contract SimpleAccount","name":"ret","type":"address"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"uint256","name":"salt","type":"uint256"},{"internalType":"uint256","name":"ownerId","type":"uint256"}],"name":"getAddress","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"}]
+  const FactoryAddress  = "0x8DA48cCfa815E8C911e30677A3ad810889C1fB99"
+  const factory = new ethers.Contract(FactoryAddress, FactoryABI, signer);
+  let aa_list = localStorage.getItem('aa_list') ? JSON.parse(localStorage.getItem('aa_list')) : []
+  aaList.value = aa_list.map(e => e.address)
+  aaRemark.value = localStorage.getItem('aa_remark') ? JSON.parse(localStorage.getItem('aa_remark')) : {}
+  let nfts = await nftContract.getNftId(address.value)
+  let ids = aa_list.map(e => e.id)
+  // 获取不同的值
+  let diff = nfts.filter(e => !ids.includes(e.toString()))
+  console.log(diff)
+  if (diff.length) {
+    diff.forEach(async e => {
+      let address = await factory.accountCardId(e)
+      let item = {
+        id: e.toString(),
+        address: address
+      }
+      aa_list.push(item)
+      aaList.value.push(address)
+      localStorage.setItem('aa_list', JSON.stringify(aa_list))
+    })
+  }
   // wallet.value = await init_wallet()
   // if (!wallet.value) {
   //   wallet.value = await create_aa_wallet()
@@ -216,16 +248,16 @@ watch(() => editAA.value, (val) => {
     <div class="logo" @click="toIndex">Gomoku</div>
     <div class="wallet">
       <div v-if="address && balance && balance == 0" class="flex-center block">
-      <!-- <div class="flex-center block"> -->
-        <div class="blance">0.0 BNB</div>
+        <!-- <div class="flex-center block"> -->
+        <div class="blance">0.0 ETH</div>
         <div class="line"></div>
         <div class="address flex-center">
           <div class="address-type">EOA</div><span @click="copy(address)">{{ address }}</span>
         </div>
         <img src="../assets/images/arrow.svg" alt="" class="left-icon">
         <div class="hint flex-center"><img src="../assets/images/hint.svg" alt="">Gas余额不足请充值</div>
-        <n-spin :show="isGetBnb" size="small" >
-          <div class="hint pointer flex-center" @click="getBnb">点击获取测试tBNB</div>
+        <n-spin :show="isGetBnb" size="small">
+          <div class="hint pointer flex-center" @click="getBnb">点击获取测试ETH</div>
         </n-spin>
         <!-- <div class="popover">请向此地址充值tBNB,不是Metamask</div> -->
       </div>
@@ -237,11 +269,12 @@ watch(() => editAA.value, (val) => {
         </div>
       </div>
       <div class="flex-center block" v-if="balance > 0 && aaAddress">
-      <!-- <div class="flex-center block" v-if="false"> -->
-        <div class="blance">{{ formatBalance(balance) }} BNB</div>
+        <!-- <div class="flex-center block" v-if="false"> -->
+        <div class="blance">{{ formatBalance(balance) }} ETH</div>
         <div class="line"></div>
         <div class="address flex-center">
-          <div class="address-type">AA</div><span v-if="aaRemark[aaAddress]">{{ aaRemark[aaAddress] }}</span><span @click="copy(aaAddress)">{{ formatAddress(aaAddress) }}</span>
+          <div class="address-type">AA</div><span v-if="aaRemark[aaAddress]">{{ aaRemark[aaAddress] }}</span><span
+            @click="copy(aaAddress)">{{ formatAddress(aaAddress) }}</span>
           <svg @click="() => showDropdown = !showDropdown"
             :style="{ transform: showDropdown ? 'rotate(180deg)' : 'rotate(0deg)' }" class="arrow"
             xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none">
@@ -273,9 +306,10 @@ watch(() => editAA.value, (val) => {
             <div class="aa-list">
               <div v-for="item in aaList" :key="item" class="address aa flex-center-sb" @click="changeAA(item)">
                 <div class="flex-center">
-                  <div class="address-type">AA</div><span v-if="aaRemark[item]">{{ aaRemark[item] }}</span><span>{{ formatAddress(item) }}</span>
-                  <svg class="edit-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18"
-                    viewBox="0 0 18 18" fill="none" @click.stop="() => editAA = item">
+                  <div class="address-type">AA</div><span v-if="aaRemark[item]">{{ aaRemark[item] }}</span><span>{{
+                    formatAddress(item) }}</span>
+                  <svg class="edit-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18"
+                    fill="none" @click.stop="() => editAA = item">
                     <path d="M3 15H15" stroke="#858D99" stroke-width="1.35" stroke-linecap="round"
                       stroke-linejoin="round" />
                     <path
@@ -308,29 +342,35 @@ watch(() => editAA.value, (val) => {
     </div>
     <div v-if="editAA" class="edit-modal" @click="closeModal">
       <div class="modal-content" @click.stop>
-        <img src="../assets/images/close.svg" alt="" class="close" @click="closeModal">
-        <div class="hd flex-center">
-          <div class="title">Set Up</div>
-          <div class="type flex-center-center">AA</div>
-          <div class="address">{{ formatAddress(editAA) }}</div>
-        </div>
-        <div class="bd">
-          <div class="item">
-            <div class="item-title">Remarks</div>
-            <div class="item-input flex-center">
-              <input type="text" placeholder="Enter a comment name" v-model="remark" />
-              <div :class="['item-btn', 'flex-center-center',remark ? 'item-btn-activate' : '']" @click="bindRemark">Save</div>
+        <n-spin :show="editLoading" size="small">
+          <img src="../assets/images/close.svg" alt="" class="close" @click="closeModal">
+          <div class="hd flex-center">
+            <div class="title">Set Up</div>
+            <div class="type flex-center-center">AA</div>
+            <div class="address">{{ formatAddress(editAA) }}</div>
+          </div>
+          <div class="bd">
+            <div class="item">
+              <div class="item-title">Remarks</div>
+              <div class="item-input flex-center">
+                <input type="text" placeholder="Enter a comment name" v-model="remark" />
+                <div :class="['item-btn', 'flex-center-center', remark ? 'item-btn-activate' : '']" @click="bindRemark">
+                  Save</div>
+              </div>
+            </div>
+            <div class="item">
+              <div class="item-title">Transfer</div>
+              <div class="item-input flex-center">
+                <input type="text" placeholder="Enter a different EOA address" v-model="editAddress" />
+                <div
+                  :class="['item-btn', 'flex-center-center', editAddress && editAddress.length == 42 ? 'item-btn-activate' : '']"
+                  @click="bindTransfer">confirm</div>
+              </div>
             </div>
           </div>
-          <!-- <div class="item">
-            <div class="item-title">Transfer</div>
-            <div class="item-input flex-center">
-              <input type="text" placeholder="Enter a different EOA address" v-model="editAddress" />
-              <div :class="['item-btn', 'flex-center-center',editAddress && editAddress.length == 42 ? 'item-btn-activate' : '']" @click="bindTransfer">confirm</div>
-            </div>
-          </div> -->
-        </div>
+        </n-spin>
       </div>
+
     </div>
   </div>
 </template>
@@ -393,6 +433,7 @@ watch(() => editAA.value, (val) => {
         transition: all .3s;
         position: relative;
         z-index: 100;
+
         &:hover {
           path {
             stroke: #FFF;
@@ -438,10 +479,11 @@ watch(() => editAA.value, (val) => {
       // text-transform: capitalize;
       padding: 0 8px;
       box-sizing: border-box;
+
       &.pointer {
         cursor: pointer;
       }
-      
+
       img {
         width: 14px;
         height: 14px;
@@ -465,7 +507,8 @@ watch(() => editAA.value, (val) => {
       line-height: normal;
       letter-spacing: 0.26px;
       text-transform: capitalize;
-      &::before{
+
+      &::before {
         content: "";
         width: 0px;
         height: 0px;
@@ -566,6 +609,7 @@ watch(() => editAA.value, (val) => {
         &:hover {
           border-radius: 6px;
           background: #2D323B;
+
           .edit-icon {
             display: block;
           }
@@ -612,6 +656,7 @@ watch(() => editAA.value, (val) => {
     }
   }
 }
+
 .edit-modal {
   position: fixed;
   top: 0;
@@ -624,6 +669,7 @@ watch(() => editAA.value, (val) => {
   display: flex;
   align-items: center;
   justify-content: center;
+
   .modal-content {
     width: 480px;
     // height: 259px;
@@ -632,6 +678,7 @@ watch(() => editAA.value, (val) => {
     padding: 20px;
     box-sizing: border-box;
     position: relative;
+
     .close {
       position: absolute;
       top: 20px;
@@ -640,6 +687,7 @@ watch(() => editAA.value, (val) => {
       height: auto;
       cursor: pointer;
     }
+
     .hd {
       .title {
         color: #FFF;
@@ -649,6 +697,7 @@ watch(() => editAA.value, (val) => {
         line-height: normal;
         text-transform: capitalize;
       }
+
       .type {
         margin-left: 16px;
         width: 32px;
@@ -663,18 +712,22 @@ watch(() => editAA.value, (val) => {
         letter-spacing: 0.26px;
         text-transform: capitalize;
       }
+
       .address {
         margin-left: 6px;
         color: #FFF;
         font-family: Montserrat-Medium;
         font-size: 14px;
         font-style: normal;
-        line-height: 18px; /* 128.571% */
+        line-height: 18px;
+        /* 128.571% */
       }
     }
+
     .bd {
       .item {
         margin-top: 24px;
+
         .item-title {
           color: var(--ffffff, #FFF);
           font-family: Montserrat-Regular;
@@ -683,8 +736,10 @@ watch(() => editAA.value, (val) => {
           line-height: normal;
           text-transform: capitalize;
         }
+
         .item-input {
           margin-top: 12px;
+
           input {
             padding: 0 18px;
             box-sizing: border-box;
@@ -699,7 +754,8 @@ watch(() => editAA.value, (val) => {
             font-size: 14px;
             font-style: normal;
             font-weight: 400;
-            line-height: 20px; /* 142.857% */
+            line-height: 20px;
+            /* 142.857% */
             outline: none;
 
             &::placeholder {
@@ -708,10 +764,12 @@ watch(() => editAA.value, (val) => {
               font-size: 14px;
               font-style: normal;
               font-weight: 400;
-              line-height: 20px; /* 142.857% */
+              line-height: 20px;
+              /* 142.857% */
               text-transform: capitalize;
             }
           }
+
           .item-btn {
             border-radius: 8px;
             border: 1px solid rgba(133, 141, 153, 0.15);
@@ -723,9 +781,11 @@ watch(() => editAA.value, (val) => {
             font-size: 14px;
             font-style: normal;
             font-weight: 400;
-            line-height: 20px; /* 142.857% */
+            line-height: 20px;
+            /* 142.857% */
             text-transform: capitalize;
             cursor: pointer;
+
             &-activate {
               border-radius: 8px;
               border: 1px solid rgba(133, 141, 153, 0.15);

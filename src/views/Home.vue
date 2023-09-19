@@ -27,6 +27,9 @@ const joinRoom = async (id) => {
   if (store.state.balance == 0) {
     message.error('Gas余额不足，请先充值')
     return
+  } else if (!store.state.aaAddress) {
+    message.error('请先创建AA钱包')
+    return
   }
   id = Number(id)
   console.log(id)
@@ -48,6 +51,9 @@ const joinRoom = async (id) => {
 const createRoom = async () => {
   if (store.state.balance == 0) {
     message.error('Gas余额不足，请先充值')
+    return
+  } else if (!store.state.aaAddress) {
+    message.error('请先创建AA钱包')
     return
   }
   createLoading.value = true

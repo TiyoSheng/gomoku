@@ -7,10 +7,10 @@ const themeOverrides = {
   }
 }
 
-let isV2 = localStorage.getItem('isV2') || ''
-if (!isV2) {
+let isV3 = localStorage.getItem('isV3') || ''
+if (!isV3) {
   localStorage.clear()
-  localStorage.setItem('isV2', 'true')
+  localStorage.setItem('isV3', 'true')
 }
 </script>
 <template>

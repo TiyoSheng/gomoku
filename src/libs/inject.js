@@ -1,7 +1,8 @@
 import { ethers } from "ethers";
 
 export async function init_wallet() {
-  let rpc_url = "https://opbnb-testnet-rpc.bnbchain.org/";
+  // arb-goerli rpc url
+  let rpc_url = "https://arbitrum-goerli.infura.io/v3/f2d8df49b1da46f49db541f7e66a74bb";
   let pk = localStorage.getItem("pk");
   let privateKey ;
   if(!pk){
@@ -87,8 +88,8 @@ export async function create_aa_wallet(){
     let web3 = new ethers.providers.Web3Provider(window.ethereum);
     let signer = web3.getSigner();
     let wallet_address = await signer.getAddress();
-    const FactoryABI = [{"inputs":[{"internalType":"contract IEntryPoint","name":"_entryPoint","type":"address"},{"internalType":"address","name":"_GamerCardAddress","type":"address"}],"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"account","type":"address"},{"indexed":true,"internalType":"address","name":"owner","type":"address"},{"indexed":true,"internalType":"uint256","name":"ownerId","type":"uint256"}],"name":"AccountCreated","type":"event"},{"inputs":[],"name":"GamerCardAddress","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"accountImplementation","outputs":[{"internalType":"contract SimpleAccount","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"uint256","name":"salt","type":"uint256"}],"name":"createAccount","outputs":[{"internalType":"contract SimpleAccount","name":"ret","type":"address"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"uint256","name":"salt","type":"uint256"},{"internalType":"uint256","name":"ownerId","type":"uint256"}],"name":"getAddress","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"}]
-    const FactoryAddress  = "0x5D5eA1f9b791340eD17c63902bBF23288C6dD970"
+    const FactoryABI = [{"inputs":[{"internalType":"contract IEntryPoint","name":"_entryPoint","type":"address"},{"internalType":"address","name":"_GamerCardAddress","type":"address"}],"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"account","type":"address"},{"indexed":true,"internalType":"address","name":"owner","type":"address"},{"indexed":true,"internalType":"uint256","name":"ownerId","type":"uint256"}],"name":"AccountCreated","type":"event"},{"inputs":[],"name":"GamerCardAddress","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"accountCardId","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"accountImplementation","outputs":[{"internalType":"contract SimpleAccount","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"uint256","name":"salt","type":"uint256"}],"name":"createAccount","outputs":[{"internalType":"contract SimpleAccount","name":"ret","type":"address"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"uint256","name":"salt","type":"uint256"},{"internalType":"uint256","name":"ownerId","type":"uint256"}],"name":"getAddress","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"}]
+    const FactoryAddress  = "0x8DA48cCfa815E8C911e30677A3ad810889C1fB99"
     const factory = new ethers.Contract(FactoryAddress, FactoryABI, signer);
     let salt = generateRandomNumber(9);
      salt = ethers.BigNumber.from(salt);
@@ -98,9 +99,10 @@ export async function create_aa_wallet(){
      console.log(t)
      let token_id = tx.events?.filter((e)=>e.event=="AccountCreated")[0].args.ownerId
     let aa_address = await factory.getAddress(wallet_address, salt,token_id);
-    console.log("创建的aa钱包地址",aa_address)
+    console.log("创建的aa钱包地址",aa_address, token_id)
+    
     localStorage.setItem("aa_address",aa_address);
-    return aa_address
+    return {id: token_id.toString(), address: aa_address}
 }
 
 export async function execute(contract, method_name, params){
