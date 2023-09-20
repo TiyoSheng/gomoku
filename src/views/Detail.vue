@@ -40,7 +40,7 @@ const whitePlayer = ref('')
 const txList = ref([])
 const winner = ref(0)
 const turn = ref(0)
-const block = ref(50)
+const block = ref(150)
 const nowPlayer = ref(1)
 const start = ref(null)
 const step = ref(null)
@@ -116,7 +116,7 @@ const checkBlock = async (room) => {
   let web3 = new ethers.providers.Web3Provider(window.ethereum);
   interval1 = setInterval(async () => {
     let blockNumber = await web3.getBlockNumber()
-    if (blockNumber - Number(room.lastMoveBlock) > 50) {
+    if (blockNumber - Number(room.lastMoveBlock) > 150) {
       interval1 && clearInterval(interval1)
       block.value = 0
       loading.value = true
@@ -131,7 +131,7 @@ const checkBlock = async (room) => {
       loading.value = false
     } else {
       console.log(blockNumber, Number(room.lastMoveBlock))
-      block.value = 50 - (blockNumber - Number(room.lastMoveBlock))
+      block.value = 150 - (blockNumber - Number(room.lastMoveBlock))
     }
   }, 10000)
 }
@@ -411,13 +411,13 @@ watch(() => store.state.contract, async (contract) => {
             winner.value = 2
           }
         } else {
-          block.value = 50
+          block.value = 150
           checkBlock()
         }
         cell = {};
       }
       if (player == playerType.value && id.toString() == roomId) {
-        block.value = 50
+        block.value = 150
         checkBlock()
       }
       if (player == 1) {
