@@ -144,6 +144,12 @@ const createAaWallet = async () => {
 }
 
 const getBnb = async () => {
+  let isGeted = localStorage.getItem('isGeted') || ''
+  if (isGeted) {
+    message.error('已经领取过了')
+    return
+  }
+  if (balance.value) return
   isGetBnb.value = true
   fetch('https://api.gomoku3.xyz/facuet', {
     method: 'POST',
@@ -162,6 +168,7 @@ const getBnb = async () => {
       message.error(res.msg)
     }
     isGetBnb.value = false
+    localStorage.setItem('isGeted', 'true')
   }).catch(err => {
     console.log(err)
     isGetBnb.value = false
@@ -179,16 +186,27 @@ onBeforeMount(async () => {
   let accounts = await web3.listAccounts();
   address.value = accounts[0]
   // 获取钱包余额
-  let bal = await web3.getBalance(accounts[0]);
+  let bal = 0
+  try {
+    bal = await web3.getBalance(accounts[0]);
+  } catch (error) {
+    console.log(error)
+    message.error(error.message || '获取账户余额失败')
+  }
   aaAddress.value = localStorage.getItem('aa_address') || ''
   balance.value = bal.toString()
   setBalance(balance.value)
   if (balance.value == 0) {
     interval = setInterval(async () => {
-      let bal = await web3.getBalance(accounts[0]);
-      if (bal.toString() > 0) {
+      let bal1 = 0
+      try {
+        bal1 = await web3.getBalance(accounts[0]);
+      } catch (error) {
+        console.log(error)
+      }
+      if (bal1.toString() > 0) {
         clearInterval(interval)
-        balance.value = bal.toString()
+        balance.value = bal1.toString()
         setBalance(balance.value)
         if (!aaAddress.value) {
           await createAaWallet()
