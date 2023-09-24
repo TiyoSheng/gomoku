@@ -101,6 +101,9 @@ const isShowJoin = (room) => {
 watch(() => store.state.contract, (contract) => {
   if (contract) {
     getRoomList()
+    toRaw(store.state.contract).removeAllListeners('RoomCreated')
+    toRaw(store.state.contract).removeAllListeners('GameStarted')
+    toRaw(store.state.contract).removeAllListeners('GameEnded')
     toRaw(contract).on('RoomCreated', (id, player, position) => {
       console.log(id, player, position)
       if (player.toLocaleLowerCase() == store.state.aaAddress.toLocaleLowerCase()) {

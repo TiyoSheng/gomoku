@@ -388,6 +388,8 @@ const isPlayerWon = (mp, c) => {
 
 watch(() => store.state.contract, async (contract) => {
   if (contract) {
+    toRaw(store.state.contract).removeAllListeners('MoveMade')
+    toRaw(store.state.contract).removeAllListeners('GameEnded')
     getBoard()
     await getRoom()
     toRaw(contract).on('MoveMade', async (id, player, column, row) => {
