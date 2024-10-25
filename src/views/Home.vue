@@ -347,12 +347,14 @@ onBeforeUnmount(() => {
         text-transform: capitalize;
         display: flex;
         align-items: flex-end;
+
         span {
           color: #121318;
           font-family: Montserrat-bold;
           font-size: 36px;
           font-style: italic;
-          line-height: 36px; /* 100% */
+          line-height: 36px;
+          /* 100% */
           letter-spacing: 1.44px;
           margin-left: 8px;
         }

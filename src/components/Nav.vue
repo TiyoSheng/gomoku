@@ -354,7 +354,8 @@ watch(() => editAA.value, (val) => {
           <!-- <div class="popover">请向此地址充值tBNB,不是Metamask</div> -->
         </div>
         <div v-if="balance > 0 && !aaAddress">
-          <div class="create-btn" @click="createAaWallet" :style="{ cursor: createLoading ? 'not-allowed' : 'pointer' }">
+          <div class="create-btn" @click="createAaWallet"
+            :style="{ cursor: createLoading ? 'not-allowed' : 'pointer' }">
             <!-- <span v-if="createLoading" class="loader"></span> -->
             <img v-if="createLoading" src="../assets/images/loading.svg" alt="">
             Creating AA wallet
@@ -381,8 +382,8 @@ watch(() => editAA.value, (val) => {
                 <div class="flex-center">
                   <div class="address-type">EOA</div><span>{{ formatAddress(address) }}</span>
                 </div>
-                <svg @click="copy(address)" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18"
-                  fill="none">
+                <svg @click="copy(address)" xmlns="http://www.w3.org/2000/svg" width="18" height="18"
+                  viewBox="0 0 18 18" fill="none">
                   <path
                     d="M9.75 15.75L3 15.75C2.58579 15.75 2.25 15.4142 2.25 15L2.25 5.25C2.25 4.83579 2.58579 4.5 3 4.5L7.18934 4.5C7.38825 4.5 7.57902 4.57902 7.71967 4.71967L10.2803 7.28033C10.421 7.42098 10.5 7.61175 10.5 7.81066V15C10.5 15.4142 10.1642 15.75 9.75 15.75Z"
                     stroke="#858D99" stroke-linecap="round" stroke-linejoin="round" />
@@ -391,8 +392,8 @@ watch(() => editAA.value, (val) => {
                     stroke="#858D99" stroke-linecap="round" stroke-linejoin="round" />
                   <path d="M10.5 8.25L7.5 8.25C7.08579 8.25 6.75 7.91421 6.75 7.5L6.75 4.5" stroke="#858D99"
                     stroke-linecap="round" stroke-linejoin="round" />
-                  <path d="M15.75 6L12.75 6C12.3358 6 12 5.66421 12 5.25L12 2.25" stroke="#858D99" stroke-linecap="round"
-                    stroke-linejoin="round" />
+                  <path d="M15.75 6L12.75 6C12.3358 6 12 5.66421 12 5.25L12 2.25" stroke="#858D99"
+                    stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
               </div>
               <div class="aa-list">
