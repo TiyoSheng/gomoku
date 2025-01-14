@@ -247,25 +247,25 @@ const init = async () => {
   const FactoryABI = [{ "inputs": [{ "internalType": "contract IEntryPoint", "name": "_entryPoint", "type": "address" }, { "internalType": "address", "name": "_GamerCardAddress", "type": "address" }], "stateMutability": "nonpayable", "type": "constructor" }, { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "address", "name": "account", "type": "address" }, { "indexed": true, "internalType": "address", "name": "owner", "type": "address" }, { "indexed": true, "internalType": "uint256", "name": "ownerId", "type": "uint256" }], "name": "AccountCreated", "type": "event" }, { "inputs": [], "name": "GamerCardAddress", "outputs": [{ "internalType": "address", "name": "", "type": "address" }], "stateMutability": "view", "type": "function" }, { "inputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "name": "accountCardId", "outputs": [{ "internalType": "address", "name": "", "type": "address" }], "stateMutability": "view", "type": "function" }, { "inputs": [], "name": "accountImplementation", "outputs": [{ "internalType": "contract SimpleAccount", "name": "", "type": "address" }], "stateMutability": "view", "type": "function" }, { "inputs": [{ "internalType": "address", "name": "owner", "type": "address" }, { "internalType": "uint256", "name": "salt", "type": "uint256" }], "name": "createAccount", "outputs": [{ "internalType": "contract SimpleAccount", "name": "ret", "type": "address" }], "stateMutability": "nonpayable", "type": "function" }, { "inputs": [{ "internalType": "address", "name": "owner", "type": "address" }, { "internalType": "uint256", "name": "salt", "type": "uint256" }, { "internalType": "uint256", "name": "ownerId", "type": "uint256" }], "name": "getAddress", "outputs": [{ "internalType": "address", "name": "", "type": "address" }], "stateMutability": "view", "type": "function" }]
   const FactoryAddress = "0x8DA48cCfa815E8C911e30677A3ad810889C1fB99"
   const factory = new ethers.Contract(FactoryAddress, FactoryABI, signer);
-  let aa_list = localStorage.getItem('aa_list') ? JSON.parse(localStorage.getItem('aa_list')) : []
-  aaList.value = aa_list.map(e => e.address)
-  aaRemark.value = localStorage.getItem('aa_remark') ? JSON.parse(localStorage.getItem('aa_remark')) : {}
-  let nfts = await nftContract.getNftId(address.value)
-  let ids = aa_list.map(e => e.id)
-  // 获取不同的值
-  let diff = nfts.filter(e => !ids.includes(e.toString()))
-  if (diff.length) {
-    diff.forEach(async e => {
-      let address = await factory.accountCardId(e)
-      let item = {
-        id: e.toString(),
-        address: address
-      }
-      aa_list.push(item)
-      aaList.value.push(address)
-      localStorage.setItem('aa_list', JSON.stringify(aa_list))
-    })
-  }
+  // let aa_list = localStorage.getItem('aa_list') ? JSON.parse(localStorage.getItem('aa_list')) : []
+  aaList.value = [address.value]
+  // aaRemark.value = localStorage.getItem('aa_remark') ? JSON.parse(localStorage.getItem('aa_remark')) : {}
+  // let nfts = await nftContract.getNftId(address.value)
+  // let ids = aa_list.map(e => e.id)
+  // // 获取不同的值
+  // let diff = nfts.filter(e => !ids.includes(e.toString()))
+  // if (diff.length) {
+  //   diff.forEach(async e => {
+  //     let address = await factory.accountCardId(e)
+  //     let item = {
+  //       id: e.toString(),
+  //       address: address
+  //     }
+  //     aa_list.push(item)
+  //     aaList.value.push(address)
+  //     localStorage.setItem('aa_list', JSON.stringify(aa_list))
+  //   })
+  // }
 }
 
 const getRpcConnectivity = async (rpc) => {
