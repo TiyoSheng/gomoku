@@ -215,8 +215,8 @@ const init = async () => {
   }
   // aaAddress.value = localStorage.getItem('aa_address') || ''
   aaAddress.value = address.value || ''
-  // balance.value = bal.toString()
-  balance.value = '1'
+  balance.value = bal.toString()
+  // balance.value = '1'
   console.log(balance.value)
   setBalance(balance.value)
   if (balance.value == 0) {
