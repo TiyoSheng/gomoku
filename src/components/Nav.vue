@@ -141,7 +141,7 @@ const createAaWallet = async () => {
   let obj = {}
   try {
     obj = await create_aa_wallet()
-    aaAddress.value = obj?.address
+    aaAddress.value = obj.address
   } catch (error) {
     console.log(error)
     message.error('创建AA钱包失败')
@@ -213,7 +213,7 @@ const init = async () => {
     console.log(error)
     message.error(error.message || '获取账户余额失败')
   }
-  aaAddress.value = localStorage.getItem('aa_address') || ''
+  aaAddress.value = address.value
   balance.value = bal.toString()
   setBalance(balance.value)
   if (balance.value == 0) {
@@ -278,7 +278,7 @@ const getRpcConnectivity = async (rpc) => {
 }
 
 onBeforeMount(async () => {
-  let rpcUrls = rpcs['421613']
+  let rpcUrls = rpcs['20143']
   rpcUrl.value = rpcUrls[0]
   init()
 
@@ -341,17 +341,17 @@ watch(() => editAA.value, (val) => {
       <div class="wallet">
         <div v-if="address && balance && balance == 0" class="flex-center block">
           <!-- <div class="flex-center block"> -->
-          <div class="blance">0.0 ETH</div>
+          <div class="blance">0.0 DMON</div>
           <div class="line"></div>
           <div class="address flex-center">
             <div class="address-type">EOA</div><span @click="copy(address)">{{ address }}</span>
           </div>
           <img src="../assets/images/arrow.svg" alt="" class="left-icon">
           <div class="hint flex-center"><img src="../assets/images/hint.svg" alt="">Gas余额不足请充值</div>
-          <n-spin :show="isGetBnb" size="small">
+          <!-- <n-spin :show="isGetBnb" size="small">
             <div class="hint pointer flex-center" @click="getBnb">点击获取测试ETH</div>
-          </n-spin>
-          <!-- <div class="popover">请向此地址充值tBNB,不是Metamask</div> -->
+          </n-spin> -->
+          <div class="popover">请向此地址充值DMON,不是Metamask</div>
         </div>
         <div v-if="balance > 0 && !aaAddress">
           <div class="create-btn" @click="createAaWallet"
