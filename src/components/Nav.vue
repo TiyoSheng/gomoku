@@ -213,8 +213,11 @@ const init = async () => {
     console.log(error)
     message.error(error.message || '获取账户余额失败')
   }
-  aaAddress.value = address.value
-  balance.value = bal.toString()
+  // aaAddress.value = localStorage.getItem('aa_address') || ''
+  aaAddress.value = address.value || ''
+  // balance.value = bal.toString()
+  balance.value = '1'
+  console.log(balance.value)
   setBalance(balance.value)
   if (balance.value == 0) {
     interval = setInterval(async () => {
@@ -248,7 +251,8 @@ const init = async () => {
   const FactoryAddress = "0x8DA48cCfa815E8C911e30677A3ad810889C1fB99"
   const factory = new ethers.Contract(FactoryAddress, FactoryABI, signer);
   // let aa_list = localStorage.getItem('aa_list') ? JSON.parse(localStorage.getItem('aa_list')) : []
-  aaList.value = [address.value]
+  // aaList.value = aa_list.map(e => e.address)
+  aaList.value = [aaAddress.value]
   // aaRemark.value = localStorage.getItem('aa_remark') ? JSON.parse(localStorage.getItem('aa_remark')) : {}
   // let nfts = await nftContract.getNftId(address.value)
   // let ids = aa_list.map(e => e.id)
@@ -277,7 +281,9 @@ const getRpcConnectivity = async (rpc) => {
   return time
 }
 
+
 onBeforeMount(async () => {
+  // overwriteNonceZero()
   let rpcUrls = rpcs['20143']
   rpcUrl.value = rpcUrls[0]
   init()
