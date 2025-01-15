@@ -240,7 +240,9 @@ const init = async () => {
     await createAaWallet()
   }
   let signer = web3.getSigner();
-  let contract = new ethers.Contract(contractAddress, contractAbi, signer);
+  const provider = new ethers.providers.JsonRpcProvider(rpcUrl.value);
+  // let contract = new ethers.Contract(contractAddress, contractAbi, signer);
+  let contract = new ethers.Contract(contractAddress, contractAbi, provider);
   let nftContract = new ethers.Contract(nftAddress, nftAbi, signer);
   setContract(toRaw(contract))
   setNftContract(toRaw(nftContract))
