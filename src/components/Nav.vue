@@ -310,13 +310,13 @@ watch(() => editAA.value, (val) => {
     <div class="logo" @click="toIndex">Gomoku</div>
     <div class="flex-center">
       <div class="rpc">
-        <div class="flex-center" @click="() => showRpcDropdown = !showRpcDropdown">
+        <div class="flex-center">
           <div class="rpc-name">Monad Devnet</div>
-          <svg :style="{ transform: showRpcDropdown ? 'rotate(180deg)' : 'rotate(0deg)' }" class="arrow"
+          <!-- <svg :style="{ transform: showRpcDropdown ? 'rotate(180deg)' : 'rotate(0deg)' }" class="arrow"
             xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none">
             <path d="M14.25 6.75L9 12L3.75 6.75" stroke="#858D99" stroke-width="1.5" stroke-linecap="round"
               stroke-linejoin="round" />
-          </svg>
+          </svg> -->
         </div>
         <div class="mask" v-if="showRpcDropdown" @click="() => showRpcDropdown = false"></div>
         <div class="dropdown-w" :style="{ 'max-height': showRpcDropdown ? '350px' : '0' }">
