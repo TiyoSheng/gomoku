@@ -113,7 +113,7 @@ const checkBlock = async (room) => {
     room = await contract.rooms(roomId)
   }
   // get getBlockNumber
-  let web3 = new ethers.providers.Web3Provider(window.ethereum);
+  let web3 = new ethers.providers.Web3Provider(window.gomokuEthereum);
   interval1 = setInterval(async () => {
     let blockNumber = await web3.getBlockNumber()
     if (blockNumber - Number(room.lastMoveBlock) > 150) {

@@ -201,7 +201,7 @@ const init = async () => {
     message.error(error.message || '连接钱包失败')
   }
 
-  let web3 = new ethers.providers.Web3Provider(window.ethereum);
+  let web3 = new ethers.providers.Web3Provider(window.gomokuEthereum);
   // 获取钱包地址
   let accounts = await web3.listAccounts();
   address.value = accounts[0]
