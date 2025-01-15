@@ -311,7 +311,7 @@ watch(() => editAA.value, (val) => {
     <div class="flex-center">
       <div class="rpc">
         <div class="flex-center" @click="() => showRpcDropdown = !showRpcDropdown">
-          <div class="rpc-name">{{ rpcUrl }}</div>
+          <div class="rpc-name">Monad Devnet</div>
           <svg :style="{ transform: showRpcDropdown ? 'rotate(180deg)' : 'rotate(0deg)' }" class="arrow"
             xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none">
             <path d="M14.25 6.75L9 12L3.75 6.75" stroke="#858D99" stroke-width="1.5" stroke-linecap="round"
@@ -509,7 +509,7 @@ watch(() => editAA.value, (val) => {
       font-family: Montserrat-Medium;
       font-size: 14px;
       font-style: normal;
-      width: 240px;
+      box-sizing: border-box;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;

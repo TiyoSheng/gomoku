@@ -2,6 +2,7 @@
 import { ref, onBeforeUnmount, watch, toRaw } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMessage } from 'naive-ui'
+import Connect from '../components/Connect.vue'
 import { execute } from '../libs/inject'
 import { useGlobalStore } from '../hooks/globalStore'
 
@@ -169,25 +170,30 @@ onBeforeUnmount(() => {
         </div>
       </div>
     </n-spin>
-    <n-spin size="large" :show="createLoading">
-      <div v-if="!isWaiting" class="r">
-        <div class="title">Create Room</div>
-        <div class="select">
-          <p>Select Your Position, black frist ⬇️</p>
-          <div class="options">
-            <div v-for="item in options" :class="['options-item', positionValue == item.value ? 'options-item-a' : '']"
-              :key="item.value" @click="() => positionValue = item.value">{{ item.label }}</div>
+    <div>
+      <n-spin size="large" :show="createLoading">
+        <div v-if="!isWaiting" class="r">
+          <div class="title">Create Room</div>
+          <div class="select">
+            <p>Select Your Position, black frist ⬇️</p>
+            <div class="options">
+              <div v-for="item in options"
+                :class="['options-item', positionValue == item.value ? 'options-item-a' : '']" :key="item.value"
+                @click="() => positionValue = item.value">{{ item.label }}</div>
+            </div>
+          </div>
+          <div class="create-btn" style="width: 100%; margin-top: 24px;" @click="createRoom">✨ create room</div>
+        </div>
+        <div v-else class="r">
+          <div class="title">Waiting...</div>
+          <div class="select" v-if="createRoomId > -1">
+            <p>Your roomId is <span>{{ createRoomId }}</span></p>
           </div>
         </div>
-        <div class="create-btn" style="width: 100%; margin-top: 24px;" @click="createRoom">✨ create room</div>
-      </div>
-      <div v-else class="r">
-        <div class="title">Waiting...</div>
-        <div class="select" v-if="createRoomId > -1">
-          <p>Your roomId is <span>{{ createRoomId }}</span></p>
-        </div>
-      </div>
-    </n-spin>
+      </n-spin>
+      <Connect />
+    </div>
+
   </div>
 </template>
 
