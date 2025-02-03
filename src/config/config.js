@@ -13,7 +13,7 @@ export const rpcs = [
     chainId: 10143,
     chainName: 'Monad Textnet',
     rpcUrl: 'https://testnet-rpc2.monad.xyz/52227f026fa8fac9e2014c58fbf5643369b3bfc6',
-    explorer: 'https://explorer.monad-testnet.category.xyz',
+    explorer: 'https://testnet.monadexplorer.com/',
     username: `TrgOiKkULeJdYksXHqRR`,
     password: `SPa4TbSgMJxz5ywmzYvvc9O5nkAVGTgOcsi7yErG`
   },
