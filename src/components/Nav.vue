@@ -274,6 +274,11 @@ const init = async () => {
   // }
 }
 
+const getChainName = () => {
+  let item = rpcList.value.find(e => e.url == rpcUrl.value)
+  return item ? item.name : ''
+}
+
 const getRpcConnectivity = async (rpc) => {
   let startTime = new Date().getTime()
   let provider = new ethers.providers.JsonRpcProvider(rpc)
@@ -286,13 +291,13 @@ const getRpcConnectivity = async (rpc) => {
 
 onBeforeMount(async () => {
   // overwriteNonceZero()
-  let rpcUrls = rpcs['20143']
-  rpcUrl.value = rpcUrls[0]
+  rpcUrl.value = rpcs[0].rpcUrl
   init()
 
-  rpcUrls.forEach(async e => {
-    let time = await getRpcConnectivity(e)
-    let item = { url: e, time: (time / 1000).toFixed(2) }
+  rpcs.forEach(async e => {
+    const rpc = e.rpcUrl
+    let time = await getRpcConnectivity(rpc)
+    let item = { url: rpc, time: (time / 1000).toFixed(2), name: e.chainName }
     rpcList.value.push(item)
   })
 })
@@ -310,13 +315,13 @@ watch(() => editAA.value, (val) => {
     <div class="logo" @click="toIndex">Gomoku</div>
     <div class="flex-center">
       <div class="rpc">
-        <div class="flex-center">
-          <div class="rpc-name">Monad Devnet</div>
-          <!-- <svg :style="{ transform: showRpcDropdown ? 'rotate(180deg)' : 'rotate(0deg)' }" class="arrow"
+        <div class="flex-center" style="cursor: pointer;"  @click="() => showRpcDropdown = true">
+          <div class="rpc-name">{{ getChainName() }}</div>
+          <svg :style="{ transform: showRpcDropdown ? 'rotate(180deg)' : 'rotate(0deg)' }" class="arrow"
             xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none">
             <path d="M14.25 6.75L9 12L3.75 6.75" stroke="#858D99" stroke-width="1.5" stroke-linecap="round"
               stroke-linejoin="round" />
-          </svg> -->
+          </svg>
         </div>
         <div class="mask" v-if="showRpcDropdown" @click="() => showRpcDropdown = false"></div>
         <div class="dropdown-w" :style="{ 'max-height': showRpcDropdown ? '350px' : '0' }">
@@ -326,9 +331,9 @@ watch(() => editAA.value, (val) => {
                 <div v-for="item in rpcList" :key="item" class="rpc-item flex-center-sb" @click="changeRpc(item)">
                   <n-popover trigger="hover" :show-arrow="false" style="padding: 0;background: #48484e;">
                     <template #trigger>
-                      <div class="rpc-name">{{ item.url }}</div>
+                      <div class="rpc-name">{{ item.name }}</div>
                     </template>
-                    <span class="popover-span">{{ item.url }}</span>
+                    <!-- <span class="popover-span">{{ item.url }}</span> -->
                   </n-popover>
                   <div class="flex-center" style="flex: 0 0 60px;justify-content: flex-end;">
                     <svg v-if="rpcUrl == item.url" xmlns="http://www.w3.org/2000/svg" width="18" height="18"
