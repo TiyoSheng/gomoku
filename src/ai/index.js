@@ -12,7 +12,6 @@ const execute = async (contract, method_name, params) => {
   // let tx = await aa_contract.connect(signer).execute(target_contract_address, 0, data);
   const gasPrice = await provider.getGasPrice();
   const gasLimit = await contract.estimateGas[method_name](...params);
-  console.log('execute', gasPrice, gasLimit)
   let tx = await contract[method_name](...params, { gasPrice: Math.floor(gasPrice * 1.1), gasLimit: Math.floor(gasLimit * 2) });
   console.log('execute', tx)
   let w = await tx.wait();
