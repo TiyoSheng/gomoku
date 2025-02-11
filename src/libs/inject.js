@@ -121,7 +121,7 @@ export async function execute(contract, method_name, params) {
   // const data = contract.interface.encodeFunctionData(method_name, params);
   // let target_contract_address = contract.address
   // console.log("执行合约", target_contract_address, method_name)
-  let tx = await contract.connect(signer)[method_name](...params, { gasPrice: ethers.utils.parseUnits('55', 'gwei') });
+  let tx = await contract.connect(signer)[method_name](...params, { gasPrice: ethers.utils.parseUnits('60', 'gwei') });
   console.log("执行合约", tx)
   let w = await tx.wait();
   return Object.assign(w, tx);

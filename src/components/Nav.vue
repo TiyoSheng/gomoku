@@ -8,7 +8,7 @@ import { contractAbi, contractAddress, nftAddress, nftAbi, rpcs } from '../confi
 
 let interval = null
 
-const { store, setAddress, setAaAddress, setContract, setAaList, setBalance, setNftContract } = useGlobalStore()
+const { store, setAddress, setAaAddress, setContract, setAaList, setBalance, setNftContract, setRpcUrl } = useGlobalStore()
 const message = useMessage()
 const balance = ref(null)
 const aaAddress = ref('')
@@ -112,6 +112,7 @@ const changeAA = (item) => {
 
 const changeRpc = async (item) => {
   rpcUrl.value = item.url
+  setRpcUrl(rpcUrl.value)
   changeRpcLoading.value = true
   await init()
   changeRpcLoading.value = false
@@ -292,6 +293,7 @@ const getRpcConnectivity = async (rpc) => {
 onBeforeMount(async () => {
   // overwriteNonceZero()
   rpcUrl.value = rpcs[0].rpcUrl
+  setRpcUrl(rpcUrl.value)
   init()
 
   rpcs.forEach(async e => {

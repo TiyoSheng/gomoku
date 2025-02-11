@@ -8,7 +8,8 @@ const store = reactive({
     address: null,
     nftContract: null,
     aaList: [],
-    balance: 0
+    balance: 0,
+    rpcUrl: ''
   },
 });
 
@@ -40,6 +41,10 @@ const setNftContract = async (nftContract) => {
   store.state.nftContract = nftContract
 };
 
+const setRpcUrl = async (rpcUrl) => {
+  store.state.rpcUrl = rpcUrl
+};
+
 export const useGlobalStore = () => ({
   store,
   setBalance,
@@ -48,5 +53,6 @@ export const useGlobalStore = () => ({
   setContract,
   setWallet,
   setAaList,
-  setNftContract
+  setNftContract,
+  setRpcUrl
 });

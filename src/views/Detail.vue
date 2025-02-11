@@ -7,6 +7,8 @@ import { execute } from '../libs/inject'
 import firework from '../libs/firework';
 import { ethers } from "ethers";
 import makeBlockie from 'ethereum-blockies-base64';
+import { aiInit, removeListener } from '../ai/index'
+import { wallet } from './wallet.js'
 
 const m = 15;
 // const cellWidth = 35
@@ -146,14 +148,45 @@ const formatAddress = (address) => {
   }
 }
 
+const getWalletInfo = async () => {
+  const addressList = wallet.map(e => e.address.toLocaleLowerCase())
+  const response = await fetch(`https://gomoku-api.vercel.app/api/get_room?address_list=${addressList.join(',')}`)
+  const data = await response.json()
+  // data = {'0xxxx': null, '0x1111': 2}
+  // 遍历data，判断是否有房间号，有则赋值给room
+  let address = null
+  let useWallet = null
+  for (let key in data) {
+    if (data[key] == roomId) {
+      address = key
+      break
+    }
+  }
+  if (!address) {
+    // 获取data第一个为0或者null的地址
+    for (let key in data) {
+      if (!data[key]) {
+        address = key
+        break
+      }
+    }
+  }
+  if (address) {
+    useWallet = wallet.find(e => e.address.toLocaleLowerCase() == address)
+  }
+  aiInit(roomId, useWallet.privateKey, store.state.rpcUrl)
+}
+
 onMounted(() => {
   setBoard()
+  getWalletInfo()
 })
 
 onBeforeUnmount(() => {
   toRaw(store.state.contract).removeAllListeners('MoveMade')
   toRaw(store.state.contract).removeAllListeners('GameEnded')
   interval1 && clearInterval(interval1)
+  removeListener()
 })
 
 const setBoard = () => {

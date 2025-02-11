@@ -1,10 +1,12 @@
 <script setup>
-import { ref, onBeforeUnmount, watch, toRaw } from 'vue'
+import { ref, onBeforeUnmount, watch, toRaw, onBeforeMount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMessage } from 'naive-ui'
 import Connect from '../components/Connect.vue'
 import { execute } from '../libs/inject'
 import { useGlobalStore } from '../hooks/globalStore'
+import { wallet } from './wallet'
+import { aiJoinRoom, removeListener } from '../ai/index.js'
 
 const { store } = useGlobalStore()
 const message = useMessage()
@@ -71,6 +73,20 @@ const createRoom = async () => {
   createLoading.value = false
 }
 
+const startAi = async (roomId) => {
+  const addressList = wallet.map(e => e.address.toLocaleLowerCase())
+  const response = await fetch(`https://gomoku-api.vercel.app/api/get_room?address_list=${addressList.join(',')}`)
+  const data = await response.json()
+  const canUseAddress = []
+  for (let i = 0; i < wallet.length; i++) {
+    if (!data[wallet[i].address.toLocaleLowerCase()]) {
+      canUseAddress.push(wallet[i].address.toLocaleLowerCase())
+    }
+  }
+  const canUseWallet = wallet.filter(e => e.address.toLocaleLowerCase() == canUseAddress[0].toLocaleLowerCase())[0]
+  await aiJoinRoom(roomId, canUseWallet.privateKey, store.state.rpcUrl)
+}
+
 const getRoomList = async () => {
   loading.value = true
   let contract = toRaw(store.state.contract)
@@ -78,7 +94,26 @@ const getRoomList = async () => {
   const res = await contract.getWaitingRoom()
   roomList.value = res.filter(e => e.gameState != 2)
   loading.value = false
-  console.log(res)
+  console.log(store.state.aaAddress)
+  // 判断list中是否有自己的房间 blackPlayer.toLocaleLowerCase() == aaAddress.toLocaleLowerCase() || whitePlayer.toLocaleLowerCase() == aaAddress.toLocaleLowerCase()
+  const myRooms = res.filter(e => e.blackPlayer.toLocaleLowerCase() == store.state.aaAddress.toLocaleLowerCase() || e.whitePlayer.toLocaleLowerCase() == store.state.aaAddress.toLocaleLowerCase())
+  // 获取已开始的房间 gameState == 1
+  const startedRooms = myRooms.filter(e => e.gameState == 1)
+  // 判断已开始的房间中，是否有房间的白棋或者黑棋地址是wallet中的地址
+  for (let i = 0; i < startedRooms.length; i++) {
+    if (wallet.map(e => e.address.toLocaleLowerCase()).includes(startedRooms[i].blackPlayer.toLocaleLowerCase()) || wallet.map(e => e.address.toLocaleLowerCase()).includes(startedRooms[i].whitePlayer.toLocaleLowerCase())) {
+      router.push(`/room/${startedRooms[i].roomId}`)
+      return
+    }
+  }
+  // 获取还未开始的房间 gameState == 0
+  const waitingRooms = myRooms.filter(e => e.gameState == 0)
+  if (waitingRooms.length > 0) {
+    const roomId = Number(waitingRooms[0].roomId)
+    setTimeout(() => {
+      startAi(roomId)
+    }, 10000)
+  }
 }
 
 const getPlayers = (room) => {
@@ -131,6 +166,7 @@ onBeforeUnmount(() => {
   toRaw(store.state.contract).removeAllListeners('RoomCreated')
   toRaw(store.state.contract).removeAllListeners('GameStarted')
   toRaw(store.state.contract).removeAllListeners('GameEnded')
+  removeListener()
 })
 </script>
 <template>
