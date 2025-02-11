@@ -10,7 +10,11 @@ const execute = async (contract, method_name, params) => {
   // let target_contract_address = contract.address
   // console.log("执行合约", target_contract_address, method_name)
   // let tx = await aa_contract.connect(signer).execute(target_contract_address, 0, data);
-  let tx = await contract[method_name](...params, { gasPrice: ethers.utils.parseUnits('60', 'gwei') });
+  const gasPrice = await provider.getGasPrice();
+  const gasLimit = await contract.estimateGas[method_name](...params);
+  console.log('execute', gasPrice, gasLimit)
+  let tx = await contract[method_name](...params, { gasPrice: Math.floor(gasPrice * 1.1), gasLimit: Math.floor(gasLimit * 2) });
+  console.log('execute', tx)
   let w = await tx.wait();
   return Object.assign(w, tx);
 }
@@ -25,14 +29,15 @@ let provider = null
 let contract = null
 
 const checkBlock = async () => {
+  console.log('checkBlock')
   interval1 && clearInterval(interval1)
   let room = await contract.rooms(roomId)
   // get getBlockNumber
   interval1 = setInterval(async () => {
     // getBlockNumber
-    console.log(provider)
     let blockNumber = await provider.getBlockNumber()
     if (blockNumber - Number(room.lastMoveBlock) > 150) {
+      console.log('checkBlock', 'checkOverTime')
       interval1 && clearInterval(interval1)
       try {
         let tx = await execute(contract, 'checkOverTime', [roomId])
@@ -153,7 +158,7 @@ export const aiJoinRoom = async (rId, privateKey, rpcUrl) => {
 
 export const aiInit = async (rId, privateKey, rpcUrl) => {
   roomId = rId
-  const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
+  provider = new ethers.providers.JsonRpcProvider(rpcUrl);
   const wallet = new ethers.Wallet(privateKey, provider);
   aaAddress = wallet.address
   contract = new ethers.Contract(contractAddress, contractAbi, wallet);
@@ -165,14 +170,12 @@ export const aiInit = async (rId, privateKey, rpcUrl) => {
 const getRoomList = async () => {
   const rooms = await contract.getWaitingRoom()
   // 筛选未开始的
-  console.log(rooms, roomId)
   let myRoom = null
   rooms.forEach(room => {
     if (room.roomId == roomId) {
       myRoom = room
     }
   });
-  console.log(myRoom)
   if (myRoom.gameState == 2) {
     console.log('游戏已结束')
     removeListener()
@@ -192,6 +195,8 @@ const getRoomList = async () => {
         // checkBlock()
         const cell = ai(map, player)
         await makeMove(cell.x, cell.y)
+      } else {
+        checkBlock()
       }
     } else if (myRoom.whitePlayer.toLocaleLowerCase() == aaAddress.toLocaleLowerCase()) {
       player = 2
@@ -199,6 +204,8 @@ const getRoomList = async () => {
         // checkBlock()
         const cell = ai(map, player)
         await makeMove(cell.x, cell.y)
+      } else {
+        checkBlock()
       }
     }
   }

@@ -121,7 +121,10 @@ export async function execute(contract, method_name, params) {
   // const data = contract.interface.encodeFunctionData(method_name, params);
   // let target_contract_address = contract.address
   // console.log("执行合约", target_contract_address, method_name)
-  let tx = await contract.connect(signer)[method_name](...params, { gasPrice: ethers.utils.parseUnits('60', 'gwei') });
+  const gasPrice = await web3.getGasPrice();
+  const gasLimit = await contract.estimateGas[method_name](...params);
+  console.log('execute', gasPrice.toString(), (gasLimit * 1.2))
+  let tx = await contract.connect(signer)[method_name](...params, { gasPrice: Math.floor(gasPrice * 1.1), gasLimit: Math.floor(gasLimit * 2) });
   console.log("执行合约", tx)
   let w = await tx.wait();
   return Object.assign(w, tx);

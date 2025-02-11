@@ -123,6 +123,7 @@ const checkBlock = async (room) => {
       block.value = 0
       loading.value = true
       try {
+        console.log('checkOverTime')
         let tx = await execute(contract, 'checkOverTime', [roomId])
         console.log(tx)
         isOver.value = true
