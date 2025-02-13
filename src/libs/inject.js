@@ -94,6 +94,7 @@ function generateRandomNumber(length) {
 export async function create_aa_wallet() {
   let web3 = new ethers.providers.Web3Provider(window.gomokuEthereum);
   let signer = web3.getSigner();
+  console.log("创建aa钱包", signer)
   let wallet_address = await signer.getAddress();
   const FactoryABI = [{ "inputs": [{ "internalType": "contract IEntryPoint", "name": "_entryPoint", "type": "address" }, { "internalType": "address", "name": "_GamerCardAddress", "type": "address" }], "stateMutability": "nonpayable", "type": "constructor" }, { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "address", "name": "account", "type": "address" }, { "indexed": true, "internalType": "address", "name": "owner", "type": "address" }, { "indexed": true, "internalType": "uint256", "name": "ownerId", "type": "uint256" }], "name": "AccountCreated", "type": "event" }, { "inputs": [], "name": "GamerCardAddress", "outputs": [{ "internalType": "address", "name": "", "type": "address" }], "stateMutability": "view", "type": "function" }, { "inputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "name": "accountCardId", "outputs": [{ "internalType": "address", "name": "", "type": "address" }], "stateMutability": "view", "type": "function" }, { "inputs": [], "name": "accountImplementation", "outputs": [{ "internalType": "contract SimpleAccount", "name": "", "type": "address" }], "stateMutability": "view", "type": "function" }, { "inputs": [{ "internalType": "address", "name": "owner", "type": "address" }, { "internalType": "uint256", "name": "salt", "type": "uint256" }], "name": "createAccount", "outputs": [{ "internalType": "contract SimpleAccount", "name": "ret", "type": "address" }], "stateMutability": "nonpayable", "type": "function" }, { "inputs": [{ "internalType": "address", "name": "owner", "type": "address" }, { "internalType": "uint256", "name": "salt", "type": "uint256" }, { "internalType": "uint256", "name": "ownerId", "type": "uint256" }], "name": "getAddress", "outputs": [{ "internalType": "address", "name": "", "type": "address" }], "stateMutability": "view", "type": "function" }]
   const FactoryAddress = "0xcf7656f99cbc7055BB51F8cD0210436a5C13c02B"
@@ -124,7 +125,7 @@ export async function execute(contract, method_name, params) {
   const gasPrice = await web3.getGasPrice();
   const gasLimit = await contract.estimateGas[method_name](...params);
   console.log('execute', gasPrice.toString(), (gasLimit * 1.2))
-  let tx = await contract.connect(signer)[method_name](...params, { gasPrice: Math.floor(gasPrice * 1.1), gasLimit: Math.floor(gasLimit * 2) });
+  let tx = await contract[method_name](...params, { gasPrice: Math.floor(gasPrice * 1.2), gasLimit: Math.floor(gasLimit * 2) });
   console.log("执行合约", tx)
   let w = await tx.wait();
   return Object.assign(w, tx);

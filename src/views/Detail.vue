@@ -256,6 +256,7 @@ const fall = async () => {
   loading.value = true
   let contract = toRaw(store.state.contract)
   try {
+    console.log('makeMove', cell)
     let tx = await execute(contract, 'makeMove', [roomId, cell.column, cell.row])
     console.log(tx, tx.gasPrice.toString())
     let gasPrice = tx.gasPrice.toString()

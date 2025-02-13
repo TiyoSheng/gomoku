@@ -243,7 +243,7 @@ const init = async () => {
   let signer = web3.getSigner();
   const provider = new ethers.providers.JsonRpcProvider(rpcUrl.value);
   // let contract = new ethers.Contract(contractAddress, contractAbi, signer);
-  let contract = new ethers.Contract(contractAddress, contractAbi, provider);
+  let contract = new ethers.Contract(contractAddress, contractAbi, signer);
   let nftContract = new ethers.Contract(nftAddress, nftAbi, signer);
   setContract(toRaw(contract))
   setNftContract(toRaw(nftContract))
