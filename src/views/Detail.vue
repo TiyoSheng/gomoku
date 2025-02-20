@@ -532,7 +532,7 @@ watch(() => isOver.value, (isOver) => {
       <div class="r-hd">
         <div class="players">
           <div class="block w">
-            <div v-if="playerType == 2" class="your">Your</div>
+            <div v-if="playerType == 2" class="your">You</div>
             <img v-if="winner == 2" src="../assets/images/white_win.svg" alt="" class="bg">
             <img v-else-if="winner == 0 && nowPlayer == 2" src="../assets/images/white_a.svg" alt="" class="bg">
             <img v-else src="../assets/images/white.svg" alt="" class="bg">
@@ -563,7 +563,7 @@ watch(() => isOver.value, (isOver) => {
           </div>
           <div class="vs"><img src="../assets/images/vs.png" alt=""></div>
           <div class="block b">
-            <div v-if="playerType == 1" class="your">Your</div>
+            <div v-if="playerType == 1" class="your">You</div>
             <img v-if="winner == 1" src="../assets/images/black_win.svg" alt="" class="bg">
             <img v-else-if="winner == 0 && nowPlayer == 1" src="../assets/images/black_a.svg" alt="" class="bg">
             <img v-else src="../assets/images/black.svg" alt="" class="bg">
