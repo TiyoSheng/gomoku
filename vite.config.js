@@ -5,9 +5,11 @@ import vue from '@vitejs/plugin-vue'
 export default defineConfig({
   plugins: [vue()],
   build: {
-    // 默认使用 esbuild 进行压缩
-    esbuild: {
-      drop: ['console', 'debugger'], // 同时去除 console 和 debugger
+    minify: 'terser', // 切换到 terser 进行压缩
+    terserOptions: {
+      compress: {
+        drop_console: true, // 生产环境去除所有 console.* 调用
+      },
     },
   },
 })
