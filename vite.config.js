@@ -7,4 +7,8 @@ export default defineConfig({
   esbuild: {
     drop: ['console', 'debugger'], // 同时去除 console 和 debugger
   },
+  build: {
+    minify: 'esbuild',
+    sourcemap: false, // 是否生成sourcemap
+  }
 })
