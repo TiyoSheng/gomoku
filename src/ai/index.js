@@ -10,12 +10,18 @@ const execute = async (contract, method_name, params) => {
   // let target_contract_address = contract.address
   // console.log("执行合约", target_contract_address, method_name)
   // let tx = await aa_contract.connect(signer).execute(target_contract_address, 0, data);
-  const gasPrice = await provider.getGasPrice();
-  const gasLimit = await contract.estimateGas[method_name](...params);
-  let tx = await contract[method_name](...params, { gasPrice: Math.floor(gasPrice * 1.2), gasLimit: Math.floor(gasLimit * 2) });
-  console.log('execute', tx)
-  let w = await tx.wait();
-  return Object.assign(w, tx);
+  try {
+    const gasPrice = await provider.getGasPrice();
+    const gasLimit = await contract.estimateGas[method_name](...params);
+    let tx = await contract[method_name](...params, { gasPrice: Math.floor(gasPrice * 1.2), gasLimit: Math.floor(gasLimit * 2) });
+    console.log('execute', tx)
+    let w = await tx.wait();
+    return Object.assign(w, tx);
+  } catch (error) {
+    console.log(error)
+    // message.error(error.reason || error.data?.message || error.message)
+    execute(contract, method_name, params)
+  }
 }
 
 
